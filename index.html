@@ -13,11 +13,11 @@
     --surface2: #181b22;
     --border: #1e2230;
     --accent: #00ff88;
-    --accent2: #0066ff;
+    --accent2: #4d94ff;
     --accent-dim: rgba(0,255,136,0.08);
     --warn: #ff6b35;
     --text: #e8eaf0;
-    --text2: #6b7280;
+    --text2: #848b98;
     --text3: #9ca3af;
     --red: #ff4444;
     --pulse-size: 8px;
@@ -27,6 +27,9 @@
 
   body {
     background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,255,136,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,102,255,0.03) 0%, transparent 50%);
     color: var(--text);
     font-family: 'Syne', sans-serif;
     height: 100vh;
@@ -157,7 +160,7 @@
   }
   .btn-record:hover { background: #00e07a; transform: translateY(-1px); }
   .btn-record.recording {
-    background: var(--red);
+    background: #e53935;
     color: #fff;
     animation: pulse-btn 2s infinite;
   }
@@ -168,6 +171,26 @@
     border: 1px solid var(--border);
   }
   .btn-secondary:hover { border-color: var(--accent2); color: var(--text); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-danger:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(255,68,68,0.05);
+  }
 
   /* MAIN LAYOUT */
   .main {
@@ -242,14 +265,14 @@
 
   .transcript-empty .empty-icon {
     font-size: 40px;
-    opacity: 0.3;
+    opacity: 0.5;
   }
 
   .transcript-empty p {
     font-size: 14px;
     max-width: 220px;
     line-height: 1.5;
-    opacity: 0.6;
+    color: var(--text2);
   }
 
   .segment {
@@ -370,7 +393,12 @@
   .ai-tab:hover:not(.active) { color: var(--text3); }
 
   .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
-  .tab-content.active { display: flex; }
+  .tab-content.active { display: flex; animation: fadeIn 0.2s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
   /* CHAT */
   .chat-messages {
@@ -472,6 +500,7 @@
     transition: border-color 0.2s;
   }
   .chat-input:focus { border-color: var(--accent); }
+  .chat-input:not(:placeholder-shown) { border-color: rgba(0,255,136,0.2); }
   .chat-input::placeholder { color: var(--text2); }
 
   .btn-send {
@@ -505,7 +534,17 @@
     border-radius: 10px;
     padding: 13px;
     animation: fadeSlideIn 0.3s ease;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
+
+  .insight-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .insight-card.blindspot:hover { border-color: rgba(255,107,53,0.5); }
+  .insight-card.tip:hover { border-color: rgba(0,255,136,0.4); }
+  .insight-card.question:hover { border-color: rgba(0,102,255,0.4); }
 
   .insight-card.blindspot {
     border-color: rgba(255,107,53,0.3);
@@ -538,7 +577,7 @@
   .insight-type.question { color: var(--accent2); }
 
   .insight-text {
-    font-size: 12.5px;
+    font-size: 13px;
     line-height: 1.6;
     color: var(--text3);
   }
@@ -553,7 +592,7 @@
     color: var(--text2);
     text-align: center;
   }
-  .insights-empty p { font-size: 13px; max-width: 200px; line-height: 1.5; opacity: 0.6; }
+  .insights-empty p { font-size: 13px; max-width: 200px; line-height: 1.5; color: var(--text2); }
 
   .analyze-btn-wrap {
     padding: 12px;
@@ -631,6 +670,13 @@
     padding: 32px;
     width: 420px;
     max-width: 90vw;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1) inset;
+    animation: modalIn 0.3s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
   }
 
   .modal h2 {
@@ -672,14 +718,118 @@
     border-radius: 6px;
     border-left: 2px solid var(--accent2);
   }
+
+  /* FOCUS-VISIBLE */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  button:focus-visible, .ai-tab:focus-visible, .quick-prompt:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .chat-input:focus-visible, .meeting-title-input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* TOAST NOTIFICATIONS */
+  .toast {
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    max-width: 320px;
+  }
+  .toast.success { border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.08); }
+  .toast.warn { border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.08); }
+  .toast.error { border-color: rgba(255,68,68,0.3); background: rgba(255,68,68,0.08); }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; }
+    to { opacity: 0; transform: translateY(-10px); }
+  }
+
+  /* SEND BUTTON SPINNER */
+  .btn-send-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* REDUCED MOTION */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* RESPONSIVE: TABLET */
+  @media (max-width: 900px) {
+    .main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .transcript-panel {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    header {
+      flex-wrap: wrap;
+      padding: 10px 16px;
+    }
+    .header-center {
+      order: 3;
+      flex-basis: 100%;
+      justify-content: flex-start;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .meeting-title-input { width: 180px; }
+  }
+
+  /* RESPONSIVE: MOBILE */
+  @media (max-width: 600px) {
+    .main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr;
+    }
+    .ai-panel { display: none; }
+    header { gap: 8px; padding: 8px 12px; }
+    .logo { font-size: 11px; }
+    .meeting-title-input { width: 120px; font-size: 12px; }
+    .btn { padding: 6px 12px; font-size: 12px; }
+    .timer-badge { font-size: 11px; padding: 4px 8px; }
+    .header-actions { gap: 4px; }
+  }
 </style>
 </head>
 <body>
 
+<div id="toastContainer" style="position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;"></div>
+
 <!-- API KEY MODAL -->
-<div class="modal-overlay" id="apiModal">
+<div class="modal-overlay" id="apiModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal">
-    <h2>🎙️ Meeting Co-Pilot</h2>
+    <h2 id="modalTitle">🎙️ Meeting Co-Pilot</h2>
     <p>Cole sua <strong>Anthropic API Key</strong> para ativar o assistente de IA em tempo real durante suas reuniões.</p>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
     <button class="btn btn-record" style="width:100%;justify-content:center;" onclick="saveApiKey()">
@@ -708,8 +858,9 @@
   </div>
 
   <div class="header-actions">
-    <button class="btn btn-secondary" onclick="clearAll()">↺ Limpar</button>
     <button class="btn btn-secondary" onclick="exportTranscript()">↓ Exportar</button>
+    <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
+    <button class="btn-danger" onclick="clearAll()">↺ Limpar</button>
     <button class="btn btn-record" id="recordBtn" onclick="toggleRecording()">
       ● Gravar
     </button>
@@ -744,9 +895,9 @@
 
   <!-- AI PANEL -->
   <div class="ai-panel">
-    <div class="ai-tabs">
-      <div class="ai-tab active" onclick="switchTab('chat')">💬 Chat</div>
-      <div class="ai-tab" onclick="switchTab('insights')">🔍 Insights</div>
+    <div class="ai-tabs" role="tablist">
+      <div class="ai-tab active" role="tab" tabindex="0" onclick="switchTab('chat')" onkeydown="if(event.key==='Enter')switchTab('chat')">💬 Chat</div>
+      <div class="ai-tab" role="tab" tabindex="0" onclick="switchTab('insights')" onkeydown="if(event.key==='Enter')switchTab('insights')">🔍 Insights</div>
     </div>
 
     <!-- CHAT TAB -->
@@ -766,10 +917,10 @@
       </div>
 
       <div class="quick-prompts" id="quickPrompts">
-        <span class="quick-prompt" onclick="sendQuick(this)">📋 Resumo até agora</span>
-        <span class="quick-prompt" onclick="sendQuick(this)">🕳️ Pontos cegos</span>
-        <span class="quick-prompt" onclick="sendQuick(this)">❓ Que perguntas fazer?</span>
-        <span class="quick-prompt" onclick="sendQuick(this)">⚡ Próximos passos</span>
+        <span class="quick-prompt" role="button" tabindex="0" onclick="sendQuick(this)" onkeydown="if(event.key==='Enter')sendQuick(this)">📋 Resumo até agora</span>
+        <span class="quick-prompt" role="button" tabindex="0" onclick="sendQuick(this)" onkeydown="if(event.key==='Enter')sendQuick(this)">🕳️ Pontos cegos</span>
+        <span class="quick-prompt" role="button" tabindex="0" onclick="sendQuick(this)" onkeydown="if(event.key==='Enter')sendQuick(this)">❓ Que perguntas fazer?</span>
+        <span class="quick-prompt" role="button" tabindex="0" onclick="sendQuick(this)" onkeydown="if(event.key==='Enter')sendQuick(this)">⚡ Próximos passos</span>
       </div>
 
       <div class="chat-input-area">
@@ -789,7 +940,7 @@
     <div class="tab-content" id="tab-insights">
       <div class="insights-body" id="insightsBody">
         <div class="insights-empty">
-          <span style="font-size:36px;opacity:0.3">🔍</span>
+          <span style="font-size:36px;opacity:0.5">🔍</span>
           <p>Grave sua reunião e clique em <strong>Analisar</strong> para ver pontos cegos e sugestões</p>
         </div>
       </div>
@@ -818,12 +969,24 @@ let autoAnalyzeTimer = null;
 let lastAnalyzedLength = 0;
 
 // ============================================================
+// TOAST NOTIFICATIONS
+// ============================================================
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ============================================================
 // API KEY
 // ============================================================
 function saveApiKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
   if (!val.startsWith('sk-')) {
-    alert('Cole uma API Key válida da Anthropic (começa com sk-)');
+    showToast('Cole uma API Key válida da Anthropic (começa com sk-)', 'error');
     return;
   }
   apiKey = val;
@@ -845,7 +1008,7 @@ function toggleRecording() {
 function startRecording() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert('Seu navegador não suporta reconhecimento de voz. Use Chrome.');
+    showToast('Seu navegador não suporta reconhecimento de voz. Use Chrome.', 'error');
     return;
   }
 
@@ -1007,7 +1170,7 @@ function clearAll() {
   document.getElementById('chatMessages').innerHTML = '';
   document.getElementById('insightsBody').innerHTML = `
     <div class="insights-empty">
-      <span style="font-size:36px;opacity:0.3">🔍</span>
+      <span style="font-size:36px;opacity:0.5">🔍</span>
       <p>Grave sua reunião e clique em <strong>Analisar</strong> para ver pontos cegos e sugestões</p>
     </div>
   `;
@@ -1015,7 +1178,7 @@ function clearAll() {
 }
 
 function exportTranscript() {
-  if (transcript.length === 0) { alert('Nada para exportar ainda.'); return; }
+  if (transcript.length === 0) { showToast('Nada para exportar ainda.', 'warn'); return; }
   const title = document.getElementById('meetingTitle').value || 'reuniao';
   const content = `TRANSCRIÇÃO: ${title}\nData: ${new Date().toLocaleString('pt-BR')}\nDuração: ${formatTime(seconds)}\n\n${getFullTranscript()}`;
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -1023,6 +1186,7 @@ function exportTranscript() {
   a.href = URL.createObjectURL(blob);
   a.download = `${title.replace(/\s+/g,'-')}-transcricao.txt`;
   a.click();
+  showToast('Transcrição exportada!', 'success');
 }
 
 // ============================================================
@@ -1102,7 +1266,9 @@ function addTypingIndicator() {
 
 async function callClaude(userMessage) {
   const typingEl = addTypingIndicator();
-  document.getElementById('sendBtn').disabled = true;
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<span class="btn-send-spinner"></span>';
 
   const transcriptText = getFullTranscript();
   const meetingName = document.getElementById('meetingTitle').value;
@@ -1151,7 +1317,8 @@ ${transcriptText ? `\n=== TRANSCRIÇÃO ATÉ AGORA ===\n${transcriptText}\n===` 
     addChatMsg('ai', `Erro de conexão: ${err.message}`);
   }
 
-  document.getElementById('sendBtn').disabled = false;
+  sendBtn.disabled = false;
+  sendBtn.innerHTML = '↑';
   document.getElementById('chatMessages').scrollTop = 99999;
 }
 
@@ -1161,7 +1328,7 @@ ${transcriptText ? `\n=== TRANSCRIÇÃO ATÉ AGORA ===\n${transcriptText}\n===` 
 async function runInsights() {
   const transcriptText = getFullTranscript();
   if (!transcriptText) {
-    alert('Grave alguma conversa primeiro!');
+    showToast('Grave alguma conversa primeiro!', 'warn');
     return;
   }
 
