@@ -670,6 +670,8 @@
     padding: 32px;
     width: 420px;
     max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1) inset;
     animation: modalIn 0.3s ease;
   }
@@ -820,6 +822,150 @@
     .timer-badge { font-size: 11px; padding: 4px 8px; }
     .header-actions { gap: 4px; }
   }
+
+  /* SPEAKER LABELS */
+  .speaker-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-right: 6px;
+  }
+  .speaker-label:hover { opacity: 0.7; }
+
+  /* SPEAKER LEGEND */
+  .speaker-legend {
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--surface);
+  }
+  .speaker-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .speaker-chip:hover { border-color: var(--text2); }
+  .speaker-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MODE BADGE */
+  .mode-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .mode-badge.deepgram { color: #4ecdc4; border-color: rgba(78,205,196,0.3); }
+
+  /* AUDIO SOURCE CHECKBOXES */
+  .audio-sources {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .audio-source-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .audio-source-label input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+  }
+
+  /* MODAL SECTION DIVIDER */
+  .modal-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .modal-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* BLACKHOLE GUIDE */
+  .guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .guide-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text3);
+  }
+  .guide-step code {
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* DG INPUT IN MODAL */
+  .modal-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .modal-link {
+    color: var(--accent2);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    font-family: 'Syne', sans-serif;
+  }
+  .modal-link:hover { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -835,9 +981,49 @@
     <button class="btn btn-record" style="width:100%;justify-content:center;" onclick="saveApiKey()">
       Entrar no Co-Pilot →
     </button>
-    <div class="modal-note">
-      🔒 Sua chave fica apenas nessa sessão, nunca é enviada para servidores externos além da API da Anthropic.
+
+    <hr class="modal-divider">
+
+    <div class="modal-section-title">Deepgram (opcional — transcrição avançada com diarização)</div>
+    <label class="modal-label" for="dgKeyInput">Deepgram API Key</label>
+    <input type="password" id="dgKeyInput" placeholder="Token Deepgram (opcional)" />
+
+    <div class="modal-section-title">Fontes de áudio</div>
+    <div class="audio-sources">
+      <label class="audio-source-label">
+        <input type="checkbox" id="srcMic" checked>
+        Microfone
+      </label>
+      <label class="audio-source-label">
+        <input type="checkbox" id="srcTab">
+        Aba do navegador
+      </label>
+      <label class="audio-source-label">
+        <input type="checkbox" id="srcBlackhole">
+        BlackHole (audio do sistema)
+      </label>
     </div>
+    <button class="modal-link" onclick="document.getElementById('blackholeGuide').style.display='flex'">Como configurar BlackHole?</button>
+
+    <div class="modal-note">
+      🔒 Suas chaves ficam apenas nessa sessão, nunca são enviadas para servidores externos além das APIs da Anthropic e Deepgram.
+    </div>
+  </div>
+</div>
+
+<!-- BLACKHOLE GUIDE MODAL -->
+<div class="modal-overlay" id="blackholeGuide" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:520px;">
+    <h2>🔊 Configurar BlackHole (macOS)</h2>
+    <p>Para capturar audio de apps desktop (Zoom, Teams):</p>
+    <div class="guide-steps">
+      <div class="guide-step"><span class="step-num">1</span><span>Instale o <strong>BlackHole 2ch</strong>: <code>brew install blackhole-2ch</code></span></div>
+      <div class="guide-step"><span class="step-num">2</span><span>Abra <strong>Configuração de Audio MIDI</strong> (busque no Spotlight)</span></div>
+      <div class="guide-step"><span class="step-num">3</span><span>Clique em <strong>+</strong> → <strong>Criar Dispositivo Multi-Saida</strong></span></div>
+      <div class="guide-step"><span class="step-num">4</span><span>Marque seu <strong>alto-falante</strong> + <strong>BlackHole 2ch</strong></span></div>
+      <div class="guide-step"><span class="step-num">5</span><span>Defina o Multi-Saida como <strong>saida do sistema</strong></span></div>
+    </div>
+    <button class="btn btn-record" style="width:100%;justify-content:center;margin-top:16px;" onclick="document.getElementById('blackholeGuide').style.display='none'">Entendi!</button>
   </div>
 </div>
 
@@ -855,6 +1041,7 @@
       <div class="status-dot"></div>
       <span id="statusText">Parado</span>
     </div>
+    <span class="mode-badge" id="modeBadge">SPEECH API</span>
   </div>
 
   <div class="header-actions">
@@ -879,6 +1066,8 @@
       </div>
       <div class="word-count" id="wordCount">0 palavras</div>
     </div>
+
+    <div class="speaker-legend" id="speakerLegend" style="display:none;"></div>
 
     <div class="transcript-body" id="transcriptBody">
       <div class="transcript-empty" id="emptyState">
@@ -962,39 +1151,158 @@ let recognition = null;
 let isRecording = false;
 let timerInterval = null;
 let seconds = 0;
-let transcript = []; // [{time, text}]
+let transcript = []; // [{time, text, speaker?}]
 let interimEl = null;
 let wordCount = 0;
 let autoAnalyzeTimer = null;
 let lastAnalyzedLength = 0;
 
+// DEEPGRAM STATE
+let deepgramKey = '';
+let deepgramSocket = null;
+let audioContext = null;
+let mediaStreams = [];
+let scriptProcessor = null;
+let useDeepgram = false;
+let speakers = {}; // { 0: { name: 'Falante 1', color: '#ff6b9d', wordCount: 0 } }
+let speakerCount = 0;
+let dgReconnectAttempts = 0;
+let dgMaxReconnects = 5;
+let audioSources = { mic: true, tab: false, blackhole: false };
+
+const SPEAKER_COLORS = [
+  '#ff6b9d', '#4ecdc4', '#ffe66d', '#a8e6cf', '#ff8b94',
+  '#88d8b0', '#b088f9', '#f9a825', '#80deea', '#ef5350'
+];
+
+// ============================================================
+// HTML ESCAPE
+// ============================================================
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ============================================================
+// SPEAKER FUNCTIONS
+// ============================================================
+function ensureSpeaker(id) {
+  if (id === null || id === undefined) return;
+  if (!speakers[id]) {
+    speakerCount++;
+    speakers[id] = {
+      name: 'Falante ' + speakerCount,
+      color: SPEAKER_COLORS[speakerCount % SPEAKER_COLORS.length],
+      wordCount: 0
+    };
+    updateSpeakerLegend();
+  }
+}
+
+function getSpeakerName(id) {
+  return speakers[id] ? speakers[id].name : 'Falante ?';
+}
+
+function getSpeakerColor(id) {
+  return speakers[id] ? speakers[id].color : '#999';
+}
+
+function renameSpeaker(id, newName) {
+  if (!speakers[id] || !newName) return;
+  speakers[id].name = newName;
+  // Update all segment speaker labels with this speaker id
+  document.querySelectorAll('.speaker-label[data-speaker="' + id + '"]').forEach(function(el) {
+    el.textContent = '[' + newName + ']';
+  });
+  updateSpeakerLegend();
+}
+
+function promptRenameSpeaker(id) {
+  var currentName = getSpeakerName(id);
+  var newName = prompt('Renomear "' + currentName + '" para:', currentName);
+  if (newName && newName.trim()) {
+    renameSpeaker(id, newName.trim());
+  }
+}
+
+function updateSpeakerLegend() {
+  var legend = document.getElementById('speakerLegend');
+  var ids = Object.keys(speakers);
+  if (ids.length === 0) {
+    legend.style.display = 'none';
+    return;
+  }
+  legend.style.display = 'flex';
+  legend.innerHTML = '';
+  ids.forEach(function(id) {
+    var spk = speakers[id];
+    var chip = document.createElement('div');
+    chip.className = 'speaker-chip';
+    chip.onclick = function() { promptRenameSpeaker(id); };
+    chip.innerHTML = '<span class="speaker-dot" style="background:' + escapeHtml(spk.color) + '"></span>' +
+      '<span>' + escapeHtml(spk.name) + '</span>' +
+      '<span style="color:var(--text2);font-size:10px;font-family:Space Mono,monospace;">' + spk.wordCount + 'p</span>';
+    legend.appendChild(chip);
+  });
+}
+
+// ============================================================
+// MODE BADGE
+// ============================================================
+function updateModeBadge() {
+  var badge = document.getElementById('modeBadge');
+  if (useDeepgram) {
+    badge.textContent = 'DEEPGRAM';
+    badge.className = 'mode-badge deepgram';
+  } else {
+    badge.textContent = 'SPEECH API';
+    badge.className = 'mode-badge';
+  }
+}
+
 // ============================================================
 // TOAST NOTIFICATIONS
 // ============================================================
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
+function showToast(message, type) {
+  type = type || 'info';
+  var container = document.getElementById('toastContainer');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
   toast.textContent = message;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  setTimeout(function() { toast.remove(); }, 3000);
 }
 
 // ============================================================
 // API KEY
 // ============================================================
 function saveApiKey() {
-  const val = document.getElementById('apiKeyInput').value.trim();
+  var val = document.getElementById('apiKeyInput').value.trim();
   if (!val.startsWith('sk-')) {
     showToast('Cole uma API Key válida da Anthropic (começa com sk-)', 'error');
     return;
   }
   apiKey = val;
+
+  // Deepgram key (optional)
+  var dgVal = document.getElementById('dgKeyInput').value.trim();
+  if (dgVal) {
+    deepgramKey = dgVal;
+    useDeepgram = true;
+  }
+
+  // Audio sources
+  audioSources.mic = document.getElementById('srcMic').checked;
+  audioSources.tab = document.getElementById('srcTab').checked;
+  audioSources.blackhole = document.getElementById('srcBlackhole').checked;
+
   document.getElementById('apiModal').style.display = 'none';
+  updateModeBadge();
 }
 
 // ============================================================
-// RECORDING
+// RECORDING — DISPATCH
 // ============================================================
 function toggleRecording() {
   if (!apiKey) {
@@ -1006,7 +1314,18 @@ function toggleRecording() {
 }
 
 function startRecording() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (useDeepgram) {
+    startDeepgramRecording();
+  } else {
+    startWebSpeechRecording();
+  }
+}
+
+// ============================================================
+// WEB SPEECH API RECORDING
+// ============================================================
+function startWebSpeechRecording() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     showToast('Seu navegador não suporta reconhecimento de voz. Use Chrome.', 'error');
     return;
@@ -1018,12 +1337,12 @@ function startRecording() {
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  recognition.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const result = e.results[i];
+  recognition.onresult = function(e) {
+    var interim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      var result = e.results[i];
       if (result.isFinal) {
-        const text = result[0].transcript.trim();
+        var text = result[0].transcript.trim();
         if (text) addSegment(text);
       } else {
         interim += result[0].transcript;
@@ -1032,13 +1351,13 @@ function startRecording() {
     updateInterim(interim);
   };
 
-  recognition.onerror = (e) => {
+  recognition.onerror = function(e) {
     if (e.error !== 'no-speech') {
       console.error('Speech error:', e.error);
     }
   };
 
-  recognition.onend = () => {
+  recognition.onend = function() {
     if (isRecording) recognition.start(); // auto-restart
   };
 
@@ -1046,21 +1365,48 @@ function startRecording() {
   isRecording = true;
 
   // UI
+  setRecordingUI();
+}
+
+// ============================================================
+// DEEPGRAM RECORDING
+// ============================================================
+async function startDeepgramRecording() {
+  // Capture audio sources
+  var streams = await captureAudioSources();
+  if (streams.length === 0) {
+    showToast('Nenhuma fonte de audio disponivel.', 'error');
+    return;
+  }
+  mediaStreams = streams;
+
+  // Setup audio pipeline
+  setupAudioPipeline(streams);
+
+  // Connect to Deepgram
+  connectDeepgram();
+
+  isRecording = true;
+
+  // UI
+  setRecordingUI();
+}
+
+function setRecordingUI() {
   document.getElementById('recordBtn').textContent = '■ Parar';
   document.getElementById('recordBtn').classList.add('recording');
-  const pill = document.getElementById('statusPill');
-  pill.classList.add('recording');
+  document.getElementById('statusPill').classList.add('recording');
   document.getElementById('statusText').textContent = 'Gravando';
   document.getElementById('timerBadge').classList.add('active');
 
   // Timer
-  timerInterval = setInterval(() => {
+  timerInterval = setInterval(function() {
     seconds++;
     document.getElementById('timerBadge').textContent = formatTime(seconds);
   }, 1000);
 
   // Auto-analyze every 90s if transcript grew
-  autoAnalyzeTimer = setInterval(() => {
+  autoAnalyzeTimer = setInterval(function() {
     if (transcript.length > 0 && getFullTranscript().length > lastAnalyzedLength + 300) {
       runAutoAnalysis();
     }
@@ -1071,18 +1417,34 @@ function startRecording() {
 }
 
 function stopRecording() {
-  if (recognition) {
-    recognition.onend = null;
-    recognition.stop();
+  if (useDeepgram) {
+    closeDeepgram();
+    if (scriptProcessor) {
+      scriptProcessor.disconnect();
+      scriptProcessor = null;
+    }
+    if (audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+    mediaStreams.forEach(function(s) {
+      s.getTracks().forEach(function(t) { t.stop(); });
+    });
+    mediaStreams = [];
+  } else {
+    if (recognition) {
+      recognition.onend = null;
+      recognition.stop();
+    }
   }
+
   isRecording = false;
   clearInterval(timerInterval);
   clearInterval(autoAnalyzeTimer);
 
   document.getElementById('recordBtn').textContent = '● Gravar';
   document.getElementById('recordBtn').classList.remove('recording');
-  const pill = document.getElementById('statusPill');
-  pill.classList.remove('recording');
+  document.getElementById('statusPill').classList.remove('recording');
   document.getElementById('statusText').textContent = 'Parado';
   document.getElementById('timerBadge').classList.remove('active');
 
@@ -1092,8 +1454,237 @@ function stopRecording() {
   }
 }
 
-function addSegment(text) {
-  const body = document.getElementById('transcriptBody');
+// ============================================================
+// AUDIO PIPELINE (for Deepgram)
+// ============================================================
+async function captureAudioSources() {
+  var streams = [];
+
+  if (audioSources.mic) {
+    try {
+      var micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streams.push(micStream);
+    } catch (e) {
+      showToast('Não foi possível acessar o microfone.', 'error');
+    }
+  }
+
+  if (audioSources.tab) {
+    try {
+      var tabStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { width: 1, height: 1 },
+        audio: true
+      });
+      // Stop the video track immediately — we only want audio
+      tabStream.getVideoTracks().forEach(function(t) { t.stop(); });
+      streams.push(tabStream);
+      // Listen for user stopping share
+      var audioTrack = tabStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.addEventListener('ended', function() {
+          showToast('Compartilhamento de audio da aba encerrado.', 'warn');
+        });
+      }
+    } catch (e) {
+      showToast('Não foi possível capturar audio da aba.', 'warn');
+    }
+  }
+
+  if (audioSources.blackhole) {
+    try {
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      var blackhole = devices.find(function(d) {
+        return d.kind === 'audioinput' && d.label.toLowerCase().includes('blackhole');
+      });
+      if (blackhole) {
+        var bhStream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: blackhole.deviceId } }
+        });
+        streams.push(bhStream);
+      } else {
+        showToast('BlackHole não encontrado. Instale via: brew install blackhole-2ch', 'warn');
+      }
+    } catch (e) {
+      showToast('Erro ao capturar BlackHole.', 'error');
+    }
+  }
+
+  return streams;
+}
+
+function setupAudioPipeline(streams) {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+
+  var targetSampleRate = 16000;
+  var inputCount = streams.length || 1;
+  var merger = audioContext.createChannelMerger(inputCount);
+
+  streams.forEach(function(stream, i) {
+    var source = audioContext.createMediaStreamSource(stream);
+    source.connect(merger, 0, Math.min(i, merger.numberOfInputs - 1));
+  });
+
+  // Use ScriptProcessorNode for raw PCM access
+  var bufferSize = 4096;
+  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+  merger.connect(scriptProcessor);
+  scriptProcessor.connect(audioContext.destination); // needed for processing to work
+
+  scriptProcessor.onaudioprocess = function(event) {
+    if (!deepgramSocket || deepgramSocket.readyState !== WebSocket.OPEN) return;
+
+    var inputData = event.inputBuffer.getChannelData(0);
+
+    // Resample if needed
+    var pcmData;
+    if (audioContext.sampleRate !== targetSampleRate) {
+      pcmData = resampleBuffer(inputData, audioContext.sampleRate, targetSampleRate);
+    } else {
+      pcmData = inputData;
+    }
+
+    // Convert Float32 to Int16
+    var int16 = new Int16Array(pcmData.length);
+    for (var j = 0; j < pcmData.length; j++) {
+      var s = Math.max(-1, Math.min(1, pcmData[j]));
+      int16[j] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    deepgramSocket.send(int16.buffer);
+  };
+}
+
+function resampleBuffer(buffer, fromRate, toRate) {
+  if (fromRate === toRate) return buffer;
+  var ratio = fromRate / toRate;
+  var newLength = Math.round(buffer.length / ratio);
+  var result = new Float32Array(newLength);
+  for (var i = 0; i < newLength; i++) {
+    var idx = i * ratio;
+    var low = Math.floor(idx);
+    var high = Math.min(Math.ceil(idx), buffer.length - 1);
+    var frac = idx - low;
+    result[i] = buffer[low] * (1 - frac) + buffer[high] * frac;
+  }
+  return result;
+}
+
+// ============================================================
+// DEEPGRAM WEBSOCKET
+// ============================================================
+function connectDeepgram() {
+  var params = new URLSearchParams({
+    model: 'nova-2',
+    language: 'pt-BR',
+    diarize: 'true',
+    punctuate: 'true',
+    encoding: 'linear16',
+    sample_rate: '16000',
+    channels: '1',
+    interim_results: 'true',
+    utterance_end_ms: '1500'
+  });
+  var url = 'wss://api.deepgram.com/v1/listen?' + params.toString();
+
+  deepgramSocket = new WebSocket(url, ['token', deepgramKey]);
+
+  deepgramSocket.onopen = function() {
+    dgReconnectAttempts = 0;
+    showToast('Deepgram conectado!', 'success');
+  };
+
+  deepgramSocket.onmessage = function(event) {
+    try {
+      handleDeepgramMessage(JSON.parse(event.data));
+    } catch (e) {
+      console.error('Deepgram parse error:', e);
+    }
+  };
+
+  deepgramSocket.onerror = function(err) {
+    console.error('Deepgram WebSocket error:', err);
+  };
+
+  deepgramSocket.onclose = function(event) {
+    if (isRecording && dgReconnectAttempts < dgMaxReconnects) {
+      dgReconnectAttempts++;
+      var delay = Math.min(1000 * Math.pow(2, dgReconnectAttempts), 30000);
+      showToast('Reconectando ao Deepgram (' + dgReconnectAttempts + '/' + dgMaxReconnects + ')...', 'warn');
+      setTimeout(connectDeepgram, delay);
+    } else if (dgReconnectAttempts >= dgMaxReconnects) {
+      showToast('Falha ao reconectar ao Deepgram. Reinicie a gravação.', 'error');
+    }
+  };
+}
+
+function handleDeepgramMessage(data) {
+  var alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
+  if (!alt || !alt.transcript) return;
+
+  if (data.is_final) {
+    // Group words by speaker
+    if (alt.words && alt.words.length > 0) {
+      var groups = groupWordsBySpeaker(alt.words);
+      groups.forEach(function(group) {
+        if (group.text.trim()) {
+          addSegment(group.text.trim(), group.speaker);
+        }
+      });
+    } else if (alt.transcript.trim()) {
+      addSegment(alt.transcript.trim());
+    }
+    updateInterim('');
+  } else {
+    // Show interim
+    updateInterim(alt.transcript);
+  }
+}
+
+function groupWordsBySpeaker(words) {
+  var groups = [];
+  var currentSpeaker = null;
+  var currentWords = [];
+
+  words.forEach(function(word) {
+    var spk = word.speaker !== undefined ? word.speaker : null;
+    if (spk !== currentSpeaker && currentWords.length > 0) {
+      groups.push({
+        speaker: currentSpeaker,
+        text: currentWords.join(' ')
+      });
+      currentWords = [];
+    }
+    currentSpeaker = spk;
+    currentWords.push(word.punctuated_word || word.word);
+  });
+
+  if (currentWords.length > 0) {
+    groups.push({
+      speaker: currentSpeaker,
+      text: currentWords.join(' ')
+    });
+  }
+
+  return groups;
+}
+
+function closeDeepgram() {
+  if (deepgramSocket) {
+    if (deepgramSocket.readyState === WebSocket.OPEN) {
+      deepgramSocket.send(new Uint8Array(0)); // signal end
+    }
+    deepgramSocket.onclose = null; // prevent reconnection
+    deepgramSocket.close();
+    deepgramSocket = null;
+  }
+}
+
+// ============================================================
+// TRANSCRIPT SEGMENTS
+// ============================================================
+function addSegment(text, speakerId) {
+  var body = document.getElementById('transcriptBody');
 
   // Remove interim
   if (interimEl) {
@@ -1101,28 +1692,53 @@ function addSegment(text) {
     interimEl = null;
   }
 
-  const seg = {
+  var seg = {
     time: formatTime(seconds),
     text: text
   };
+
+  // Speaker diarization
+  if (speakerId !== undefined && speakerId !== null) {
+    ensureSpeaker(speakerId);
+    seg.speaker = speakerId;
+    // Update word count for speaker
+    var wc = text.split(/\s+/).filter(Boolean).length;
+    speakers[speakerId].wordCount += wc;
+    updateSpeakerLegend();
+  }
+
   transcript.push(seg);
 
-  const el = document.createElement('div');
+  var el = document.createElement('div');
   el.className = 'segment';
-  el.innerHTML = `
-    <div class="segment-time">${seg.time}</div>
-    <div class="segment-text">${text}</div>
-  `;
+  if (seg.speaker !== undefined) {
+    el.setAttribute('data-speaker', seg.speaker);
+  }
+
+  var timeHtml = '<div class="segment-time">' + escapeHtml(seg.time) + '</div>';
+  var textContent = '';
+  if (seg.speaker !== undefined) {
+    var color = getSpeakerColor(seg.speaker);
+    var name = getSpeakerName(seg.speaker);
+    textContent = '<div class="segment-text">' +
+      '<span class="speaker-label" style="color:' + escapeHtml(color) + '" data-speaker="' + seg.speaker + '" onclick="promptRenameSpeaker(' + seg.speaker + ')">[' + escapeHtml(name) + ']</span> ' +
+      escapeHtml(text) +
+      '</div>';
+  } else {
+    textContent = '<div class="segment-text">' + escapeHtml(text) + '</div>';
+  }
+
+  el.innerHTML = timeHtml + textContent;
   body.appendChild(el);
   body.scrollTop = body.scrollHeight;
 
   // Word count
   wordCount += text.split(/\s+/).filter(Boolean).length;
-  document.getElementById('wordCount').textContent = `${wordCount} palavras`;
+  document.getElementById('wordCount').textContent = wordCount + ' palavras';
 }
 
 function updateInterim(text) {
-  const body = document.getElementById('transcriptBody');
+  var body = document.getElementById('transcriptBody');
   if (!text) {
     if (interimEl) { interimEl.remove(); interimEl = null; }
     return;
@@ -1132,10 +1748,9 @@ function updateInterim(text) {
     interimEl.className = 'segment';
     body.appendChild(interimEl);
   }
-  interimEl.innerHTML = `
-    <div class="segment-time">${formatTime(seconds)}</div>
-    <div class="segment-text interim">${text}<span class="interim-cursor"></span></div>
-  `;
+  interimEl.innerHTML =
+    '<div class="segment-time">' + escapeHtml(formatTime(seconds)) + '</div>' +
+    '<div class="segment-text interim">' + escapeHtml(text) + '<span class="interim-cursor"></span></div>';
   body.scrollTop = body.scrollHeight;
 }
 
@@ -1143,13 +1758,18 @@ function updateInterim(text) {
 // TRANSCRIPT UTILS
 // ============================================================
 function getFullTranscript() {
-  return transcript.map(s => `[${s.time}] ${s.text}`).join('\n');
+  return transcript.map(function(s) {
+    if (s.speaker !== undefined && s.speaker !== null) {
+      return '[' + s.time + '] [' + getSpeakerName(s.speaker) + '] ' + s.text;
+    }
+    return '[' + s.time + '] ' + s.text;
+  }).join('\n');
 }
 
 function formatTime(s) {
-  const m = Math.floor(s / 60).toString().padStart(2, '0');
-  const sec = (s % 60).toString().padStart(2, '0');
-  return `${m}:${sec}`;
+  var m = Math.floor(s / 60).toString().padStart(2, '0');
+  var sec = (s % 60).toString().padStart(2, '0');
+  return m + ':' + sec;
 }
 
 function clearAll() {
@@ -1157,34 +1777,53 @@ function clearAll() {
   transcript = [];
   wordCount = 0;
   seconds = 0;
+  speakers = {};
+  speakerCount = 0;
   if (isRecording) stopRecording();
-  document.getElementById('transcriptBody').innerHTML = `
-    <div class="transcript-empty" id="emptyState">
-      <div class="empty-icon">🎤</div>
-      <p>Clique em <strong>Gravar</strong> para começar a transcrição em tempo real</p>
-    </div>
-  `;
+  document.getElementById('transcriptBody').innerHTML =
+    '<div class="transcript-empty" id="emptyState">' +
+    '<div class="empty-icon">🎤</div>' +
+    '<p>Clique em <strong>Gravar</strong> para começar a transcrição em tempo real</p>' +
+    '</div>';
   document.getElementById('wordCount').textContent = '0 palavras';
   document.getElementById('timerBadge').textContent = '00:00';
   document.getElementById('keypointsBar').style.display = 'none';
+  document.getElementById('speakerLegend').style.display = 'none';
   document.getElementById('chatMessages').innerHTML = '';
-  document.getElementById('insightsBody').innerHTML = `
-    <div class="insights-empty">
-      <span style="font-size:36px;opacity:0.5">🔍</span>
-      <p>Grave sua reunião e clique em <strong>Analisar</strong> para ver pontos cegos e sugestões</p>
-    </div>
-  `;
+  document.getElementById('insightsBody').innerHTML =
+    '<div class="insights-empty">' +
+    '<span style="font-size:36px;opacity:0.5">🔍</span>' +
+    '<p>Grave sua reunião e clique em <strong>Analisar</strong> para ver pontos cegos e sugestões</p>' +
+    '</div>';
   lastAnalyzedLength = 0;
 }
 
 function exportTranscript() {
   if (transcript.length === 0) { showToast('Nada para exportar ainda.', 'warn'); return; }
-  const title = document.getElementById('meetingTitle').value || 'reuniao';
-  const content = `TRANSCRIÇÃO: ${title}\nData: ${new Date().toLocaleString('pt-BR')}\nDuração: ${formatTime(seconds)}\n\n${getFullTranscript()}`;
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const a = document.createElement('a');
+  var title = document.getElementById('meetingTitle').value || 'reuniao';
+
+  // Speaker summary
+  var speakerSummary = '';
+  var speakerIds = Object.keys(speakers);
+  if (speakerIds.length > 0) {
+    speakerSummary = 'PARTICIPANTES:\n';
+    speakerIds.forEach(function(id) {
+      var spk = speakers[id];
+      speakerSummary += '- ' + spk.name + ': ' + spk.wordCount + ' palavras\n';
+    });
+    speakerSummary += '\n';
+  }
+
+  var content = 'TRANSCRIÇÃO: ' + title + '\n' +
+    'Data: ' + new Date().toLocaleString('pt-BR') + '\n' +
+    'Duração: ' + formatTime(seconds) + '\n\n' +
+    speakerSummary +
+    getFullTranscript();
+
+  var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${title.replace(/\s+/g,'-')}-transcricao.txt`;
+  a.download = title.replace(/\s+/g, '-') + '-transcricao.txt';
   a.click();
   showToast('Transcrição exportada!', 'success');
 }
@@ -1193,11 +1832,11 @@ function exportTranscript() {
 // TABS
 // ============================================================
 function switchTab(name) {
-  document.querySelectorAll('.ai-tab').forEach((t, i) => {
+  document.querySelectorAll('.ai-tab').forEach(function(t, i) {
     t.classList.toggle('active', (i === 0 && name === 'chat') || (i === 1 && name === 'insights'));
   });
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById(`tab-${name}`).classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
 }
 
 // ============================================================
@@ -1221,8 +1860,8 @@ function sendQuick(el) {
 }
 
 async function sendMessage() {
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
+  var input = document.getElementById('chatInput');
+  var text = input.value.trim();
   if (!text) return;
 
   input.value = '';
@@ -1233,62 +1872,56 @@ async function sendMessage() {
   await callClaude(text);
 }
 
-function addChatMsg(role, content, type = '') {
-  const messages = document.getElementById('chatMessages');
-  const div = document.createElement('div');
-  div.className = `msg ${role} ${type}`;
-  div.innerHTML = `
-    <div class="msg-meta">${role === 'user' ? 'VOCÊ' : 'CO-PILOT'}</div>
-    <div class="msg-bubble">${content.replace(/\n/g, '<br>')}</div>
-  `;
+function addChatMsg(role, content, type) {
+  type = type || '';
+  var messages = document.getElementById('chatMessages');
+  var div = document.createElement('div');
+  div.className = 'msg ' + role + ' ' + type;
+  var label = role === 'user' ? 'VOCE' : 'CO-PILOT';
+  div.innerHTML =
+    '<div class="msg-meta">' + escapeHtml(label) + '</div>' +
+    '<div class="msg-bubble">' + escapeHtml(content).replace(/\n/g, '<br>') + '</div>';
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
   return div;
 }
 
 function addTypingIndicator() {
-  const messages = document.getElementById('chatMessages');
-  const div = document.createElement('div');
+  var messages = document.getElementById('chatMessages');
+  var div = document.createElement('div');
   div.className = 'msg ai';
   div.id = 'typingIndicator';
-  div.innerHTML = `
-    <div class="msg-meta">CO-PILOT</div>
-    <div class="typing-indicator">
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-    </div>
-  `;
+  div.innerHTML =
+    '<div class="msg-meta">CO-PILOT</div>' +
+    '<div class="typing-indicator">' +
+    '<div class="typing-dot"></div>' +
+    '<div class="typing-dot"></div>' +
+    '<div class="typing-dot"></div>' +
+    '</div>';
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
   return div;
 }
 
 async function callClaude(userMessage) {
-  const typingEl = addTypingIndicator();
-  const sendBtn = document.getElementById('sendBtn');
+  var typingEl = addTypingIndicator();
+  var sendBtn = document.getElementById('sendBtn');
   sendBtn.disabled = true;
   sendBtn.innerHTML = '<span class="btn-send-spinner"></span>';
 
-  const transcriptText = getFullTranscript();
-  const meetingName = document.getElementById('meetingTitle').value;
-  const duration = formatTime(seconds);
+  var transcriptText = getFullTranscript();
+  var meetingName = document.getElementById('meetingTitle').value;
+  var duration = formatTime(seconds);
 
-  const systemPrompt = `Você é o Co-Pilot de reuniões de Ilan, um influenciador com 35M+ de seguidores, conhecido como "O Moço do Te Amo". Você está assistindo a uma reunião chamada "${meetingName}" que está durando ${duration}.
+  var speakerNote = '';
+  if (Object.keys(speakers).length > 0) {
+    speakerNote = '\n\nA transcrição inclui identificação de speakers (falantes). Refira-se a eles pelo nome quando relevante.';
+  }
 
-Sua função é ser um assistente estratégico em tempo real. Você:
-- Analisa a transcrição da reunião
-- Identifica pontos cegos, oportunidades perdidas, e questões não abordadas
-- Sugere o que Ilan pode falar a seguir para fortalecer sua posição
-- Detecta padrões e tensões na conversa
-- É direto, conciso e prático
-- Responde em português brasileiro
-- Foca no que é ACIONÁVEL agora
-
-${transcriptText ? `\n=== TRANSCRIÇÃO ATÉ AGORA ===\n${transcriptText}\n===` : 'Ainda não há transcrição gravada.'}`;
+  var systemPrompt = 'Você é o Co-Pilot de reuniões de Ilan, um influenciador com 35M+ de seguidores, conhecido como "O Moço do Te Amo". Você está assistindo a uma reunião chamada "' + meetingName + '" que está durando ' + duration + '.\n\nSua função é ser um assistente estratégico em tempo real. Você:\n- Analisa a transcrição da reunião\n- Identifica pontos cegos, oportunidades perdidas, e questões não abordadas\n- Sugere o que Ilan pode falar a seguir para fortalecer sua posição\n- Detecta padrões e tensões na conversa\n- É direto, conciso e prático\n- Responde em português brasileiro\n- Foca no que é ACIONÁVEL agora' + speakerNote + '\n\n' + (transcriptText ? '\n=== TRANSCRIÇÃO ATÉ AGORA ===\n' + transcriptText + '\n===' : 'Ainda não há transcrição gravada.');
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1304,7 +1937,7 @@ ${transcriptText ? `\n=== TRANSCRIÇÃO ATÉ AGORA ===\n${transcriptText}\n===` 
       })
     });
 
-    const data = await response.json();
+    var data = await response.json();
     typingEl.remove();
 
     if (data.content && data.content[0]) {
@@ -1314,7 +1947,7 @@ ${transcriptText ? `\n=== TRANSCRIÇÃO ATÉ AGORA ===\n${transcriptText}\n===` 
     }
   } catch (err) {
     typingEl.remove();
-    addChatMsg('ai', `Erro de conexão: ${err.message}`);
+    addChatMsg('ai', 'Erro de conexão: ' + err.message);
   }
 
   sendBtn.disabled = false;
@@ -1326,29 +1959,28 @@ ${transcriptText ? `\n=== TRANSCRIÇÃO ATÉ AGORA ===\n${transcriptText}\n===` 
 // INSIGHTS
 // ============================================================
 async function runInsights() {
-  const transcriptText = getFullTranscript();
+  var transcriptText = getFullTranscript();
   if (!transcriptText) {
     showToast('Grave alguma conversa primeiro!', 'warn');
     return;
   }
 
   switchTab('insights');
-  const btn = document.getElementById('analyzeBtn');
+  var btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
   btn.textContent = '⏳ Analisando...';
 
-  const body = document.getElementById('insightsBody');
-  body.innerHTML = `
-    <div class="insights-empty">
-      <div class="typing-indicator" style="margin:0 auto;">
-        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
-      </div>
-      <p>Analisando conversa com IA...</p>
-    </div>
-  `;
+  var body = document.getElementById('insightsBody');
+  body.innerHTML =
+    '<div class="insights-empty">' +
+    '<div class="typing-indicator" style="margin:0 auto;">' +
+    '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>' +
+    '</div>' +
+    '<p>Analisando conversa com IA...</p>' +
+    '</div>';
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1359,33 +1991,18 @@ async function runInsights() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1200,
-        system: `Você é um analista estratégico de reuniões para Ilan, influenciador brasileiro com 35M+ seguidores. Analise a transcrição fornecida e retorne SOMENTE um JSON válido com esta estrutura exata:
-{
-  "insights": [
-    {"type": "blindspot", "text": "..."},
-    {"type": "tip", "text": "..."},
-    {"type": "question", "text": "..."}
-  ],
-  "keypoints": ["ponto 1", "ponto 2", "ponto 3"]
-}
-
-Tipos:
-- blindspot: algo importante que NÃO foi mencionado, risco ou ponto cego
-- tip: sugestão concreta do que falar ou fazer agora
-- question: pergunta poderosa que Ilan deveria fazer
-
-Gere 2-3 de cada tipo. Seja específico e acionável. Responda APENAS com o JSON.`,
+        system: 'Você é um analista estratégico de reuniões para Ilan, influenciador brasileiro com 35M+ seguidores. Analise a transcrição fornecida e retorne SOMENTE um JSON válido com esta estrutura exata:\n{\n  "insights": [\n    {"type": "blindspot", "text": "..."},\n    {"type": "tip", "text": "..."},\n    {"type": "question", "text": "..."}\n  ],\n  "keypoints": ["ponto 1", "ponto 2", "ponto 3"]\n}\n\nTipos:\n- blindspot: algo importante que NÃO foi mencionado, risco ou ponto cego\n- tip: sugestão concreta do que falar ou fazer agora\n- question: pergunta poderosa que Ilan deveria fazer\n\nGere 2-3 de cada tipo. Seja específico e acionável. Responda APENAS com o JSON.',
         messages: [{
           role: 'user',
-          content: `Analise esta transcrição:\n\n${transcriptText}`
+          content: 'Analise esta transcrição:\n\n' + transcriptText
         }]
       })
     });
 
-    const data = await response.json();
-    const rawText = data.content?.[0]?.text || '{}';
-    const clean = rawText.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    var data = await response.json();
+    var rawText = (data.content && data.content[0] && data.content[0].text) || '{}';
+    var clean = rawText.replace(/```json|```/g, '').trim();
+    var parsed = JSON.parse(clean);
 
     renderInsights(parsed);
     lastAnalyzedLength = transcriptText.length;
@@ -1393,17 +2010,17 @@ Gere 2-3 de cada tipo. Seja específico e acionável. Responda APENAS com o JSON
     // Update keypoints bar
     if (parsed.keypoints && parsed.keypoints.length > 0) {
       document.getElementById('keypointsBar').style.display = 'block';
-      const list = document.getElementById('keypointsList');
-      list.innerHTML = parsed.keypoints.map(k => `
-        <div class="keypoint-item">
-          <div class="keypoint-bullet"></div>
-          <div class="keypoint-text">${k}</div>
-        </div>
-      `).join('');
+      var list = document.getElementById('keypointsList');
+      list.innerHTML = parsed.keypoints.map(function(k) {
+        return '<div class="keypoint-item">' +
+          '<div class="keypoint-bullet"></div>' +
+          '<div class="keypoint-text">' + escapeHtml(k) + '</div>' +
+          '</div>';
+      }).join('');
     }
 
   } catch (err) {
-    body.innerHTML = `<div class="insights-empty"><p>Erro ao analisar: ${err.message}</p></div>`;
+    body.innerHTML = '<div class="insights-empty"><p>Erro ao analisar: ' + escapeHtml(err.message) + '</p></div>';
   }
 
   btn.disabled = false;
@@ -1411,7 +2028,7 @@ Gere 2-3 de cada tipo. Seja específico e acionável. Responda APENAS com o JSON
 }
 
 function renderInsights(data) {
-  const body = document.getElementById('insightsBody');
+  var body = document.getElementById('insightsBody');
   body.innerHTML = '';
 
   if (!data.insights || data.insights.length === 0) {
@@ -1419,29 +2036,28 @@ function renderInsights(data) {
     return;
   }
 
-  const labels = {
+  var labels = {
     blindspot: '🕳️ Ponto Cego',
     tip: '💡 Sugestão',
     question: '❓ Pergunta-chave'
   };
 
-  data.insights.forEach(insight => {
-    const card = document.createElement('div');
-    card.className = `insight-card ${insight.type}`;
-    card.innerHTML = `
-      <div class="insight-type ${insight.type}">${labels[insight.type] || insight.type}</div>
-      <div class="insight-text">${insight.text}</div>
-    `;
+  data.insights.forEach(function(insight) {
+    var card = document.createElement('div');
+    card.className = 'insight-card ' + insight.type;
+    card.innerHTML =
+      '<div class="insight-type ' + escapeHtml(insight.type) + '">' + (labels[insight.type] || escapeHtml(insight.type)) + '</div>' +
+      '<div class="insight-text">' + escapeHtml(insight.text) + '</div>';
     body.appendChild(card);
   });
 }
 
 async function runAutoAnalysis() {
-  const transcriptText = getFullTranscript();
+  var transcriptText = getFullTranscript();
   lastAnalyzedLength = transcriptText.length;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1454,14 +2070,14 @@ async function runAutoAnalysis() {
         max_tokens: 300,
         messages: [{
           role: 'user',
-          content: `Analise esta transcrição de reunião e dê UMA sugestão urgente para o Ilan fazer agora (máximo 2 frases, direto e acionável, em português):\n\n${transcriptText}`
+          content: 'Analise esta transcrição de reunião e dê UMA sugestão urgente para o Ilan fazer agora (máximo 2 frases, direto e acionável, em português):\n\n' + transcriptText
         }]
       })
     });
 
-    const data = await response.json();
-    if (data.content?.[0]?.text) {
-      addChatMsg('ai', `⚡ Sugestão automática:\n${data.content[0].text}`, 'alert');
+    var data = await response.json();
+    if (data.content && data.content[0] && data.content[0].text) {
+      addChatMsg('ai', '⚡ Sugestão automática:\n' + data.content[0].text, 'alert');
       switchTab('chat');
     }
   } catch (e) { /* silent fail */ }
