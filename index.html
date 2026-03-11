@@ -1187,6 +1187,7 @@ let deepgramSocket = null;
 let audioContext = null;
 let mediaStreams = [];
 let scriptProcessor = null;
+let audioNodes = []; // MUST keep references to prevent Chrome GC killing audio nodes
 let useDeepgram = false;
 let speakers = {}; // { 0: { name: 'Falante 1', color: '#ff6b9d', wordCount: 0 } }
 let speakerCount = 0;
@@ -1520,7 +1521,7 @@ async function startDeepgramRecording() {
   mediaStreams = streams;
 
   // Setup audio pipeline
-  setupAudioPipeline(streams);
+  await setupAudioPipeline(streams);
 
   // Connect to Deepgram
   connectDeepgram();
@@ -1570,6 +1571,7 @@ function stopRecording() {
       s.getTracks().forEach(function(t) { t.stop(); });
     });
     mediaStreams = [];
+    audioNodes = []; // release audio node references
     // Clean up hidden video elements used to keep getDisplayMedia alive
     document.querySelectorAll('video[style*="display: none"]').forEach(function(v) { v.remove(); });
   } else {
@@ -1690,43 +1692,43 @@ async function captureAudioSources() {
   return streams;
 }
 
-function setupAudioPipeline(streams) {
+async function setupAudioPipeline(streams) {
   // Use default sample rate (matches hardware, typically 48kHz)
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   var targetSampleRate = 16000;
   var bufferSize = 4096;
 
-  // Step 1: Merge all sources via ChannelMerger
-  var merger = audioContext.createChannelMerger(streams.length);
+  // FIX #3: Ensure AudioContext is running (may start suspended without user gesture)
+  if (audioContext.state === 'suspended') {
+    await audioContext.resume();
+  }
+  console.log('[Audio] AudioContext state=' + audioContext.state + ' sampleRate=' + audioContext.sampleRate);
+
+  // Simple architecture: connect all sources directly to ScriptProcessor
+  // Each source is summed automatically at the ScriptProcessor input.
+  // No ChannelMerger needed — direct connections are simpler and avoid downmix issues.
+  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
 
   streams.forEach(function(stream, idx) {
     var source = audioContext.createMediaStreamSource(stream);
-    source.connect(merger, 0, Math.min(idx, merger.numberOfInputs - 1));
+    // FIX #1: Store reference to prevent Chrome garbage collection
+    audioNodes.push(source);
+    source.connect(scriptProcessor);
     var trackLabel = (stream.getAudioTracks()[0] || {}).label || 'unknown';
     console.log('[Audio] Source ' + idx + ' connected: ' + trackLabel);
     showToast('Fonte ' + idx + ': ' + trackLabel, 'success');
   });
 
-  // Step 2: Explicit mono downmix via GainNode
-  var monoMix = audioContext.createGain();
-  monoMix.channelCount = 1;
-  monoMix.channelCountMode = 'explicit';
-  monoMix.channelInterpretation = 'speakers';
-  merger.connect(monoMix);
-
-  // Step 3: ScriptProcessor reads the mono mix
-  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
-  monoMix.connect(scriptProcessor);
-
-  // Step 4: Connect to destination via MUTED gain (prevents feedback loop)
-  // Without connecting to destination, onaudioprocess won't fire.
-  // But playing captured audio back through speakers creates a loop via BlackHole.
+  // FIX #4: Use near-zero gain instead of 0 to prevent Chrome silent-subgraph optimization
+  // ScriptProcessor MUST be connected to destination for onaudioprocess to fire,
+  // but we don't want to play captured audio back (feedback loop via BlackHole).
   var muteGain = audioContext.createGain();
-  muteGain.gain.value = 0;
+  muteGain.gain.value = 0.00001; // near-silent, avoids Chrome optimization
+  audioNodes.push(muteGain); // prevent GC
   scriptProcessor.connect(muteGain);
   muteGain.connect(audioContext.destination);
 
-  console.log('[Audio] Pipeline ready. AudioContext sampleRate=' + audioContext.sampleRate);
+  console.log('[Audio] Pipeline ready. ' + streams.length + ' sources connected.');
 
   // Audio level monitoring
   var silentFrames = 0;
