@@ -1692,27 +1692,39 @@ async function captureAudioSources() {
 
 function setupAudioPipeline(streams) {
   // Use default sample rate (matches hardware, typically 48kHz)
-  // Forcing 16kHz can cause silence with some devices like BlackHole
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   var targetSampleRate = 16000;
 
-  // Mix all streams by connecting them to the same destination (Web Audio sums automatically)
-  var bufferSize = 4096;
-  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+  // Step 1: Merge all streams into a single MediaStream via MediaStreamDestination
+  // This is more reliable than connecting multiple sources to a ScriptProcessor directly
+  var mergedDest = audioContext.createMediaStreamDestination();
 
   streams.forEach(function(stream, idx) {
     var source = audioContext.createMediaStreamSource(stream);
-    // Use a GainNode per source so signals are summed into mono
     var gain = audioContext.createGain();
     gain.gain.value = 1.0;
+    // Force mono downmix for stereo sources (like BlackHole 2ch)
+    gain.channelCount = 1;
+    gain.channelCountMode = 'explicit';
+    gain.channelInterpretation = 'speakers';
     source.connect(gain);
-    gain.connect(scriptProcessor);
-    console.log('[Audio] Source ' + idx + ' connected: ' + (stream.getAudioTracks()[0] || {}).label);
+    gain.connect(mergedDest);
+    var trackLabel = (stream.getAudioTracks()[0] || {}).label || 'unknown';
+    console.log('[Audio] Source ' + idx + ' connected: ' + trackLabel);
+    showToast('Fonte ' + idx + ': ' + trackLabel, 'success');
   });
 
+  // Step 2: Read merged stream through ScriptProcessor
+  var mergedSource = audioContext.createMediaStreamSource(mergedDest.stream);
+  var bufferSize = 4096;
+  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+  mergedSource.connect(scriptProcessor);
   scriptProcessor.connect(audioContext.destination); // needed for processing to work
 
-  // Audio level monitoring for debug
+  console.log('[Audio] Pipeline ready. AudioContext sampleRate=' + audioContext.sampleRate);
+
+  // Audio level monitoring
   var silentFrames = 0;
   var reportedSilence = false;
 
@@ -1732,7 +1744,7 @@ function setupAudioPipeline(streams) {
       silentFrames++;
       if (silentFrames === 50 && !reportedSilence) {
         reportedSilence = true;
-        showToast('Áudio capturado parece silencioso. Verifique se o som do sistema está ativo.', 'warn');
+        showToast('Áudio parece silencioso. Verifique se o som do sistema está ativo.', 'warn');
       }
     } else {
       silentFrames = 0;
