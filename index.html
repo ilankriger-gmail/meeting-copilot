@@ -996,7 +996,7 @@
       </label>
       <label class="audio-source-label">
         <input type="checkbox" id="srcTab">
-        Aba do navegador
+        Áudio do sistema (via compartilhamento de tela)
       </label>
       <label class="audio-source-label">
         <input type="checkbox" id="srcBlackhole">
@@ -1431,6 +1431,8 @@ function stopRecording() {
       s.getTracks().forEach(function(t) { t.stop(); });
     });
     mediaStreams = [];
+    // Clean up hidden video elements used to keep getDisplayMedia alive
+    document.querySelectorAll('video[style*="display: none"]').forEach(function(v) { v.remove(); });
   } else {
     if (recognition) {
       recognition.onend = null;
@@ -1472,21 +1474,40 @@ async function captureAudioSources() {
   if (audioSources.tab) {
     try {
       var tabStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { width: 1, height: 1 },
-        audio: true
+        video: true,
+        audio: {
+          suppressLocalAudioPlayback: false
+        },
+        systemAudio: 'include'
       });
-      // Stop the video track immediately — we only want audio
-      tabStream.getVideoTracks().forEach(function(t) { t.stop(); });
-      streams.push(tabStream);
-      // Listen for user stopping share
-      var audioTrack = tabStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.addEventListener('ended', function() {
-          showToast('Compartilhamento de audio da aba encerrado.', 'warn');
+      // Check if audio was actually shared
+      var audioTracks = tabStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        showToast('Nenhum áudio capturado. Marque "Compartilhar áudio" no diálogo do Chrome.', 'warn');
+        tabStream.getVideoTracks().forEach(function(t) { t.stop(); });
+      } else {
+        // Keep video tracks alive (stopping them kills the audio stream).
+        // Create a hidden video element to consume the video track silently.
+        var hiddenVideo = document.createElement('video');
+        hiddenVideo.srcObject = new MediaStream(tabStream.getVideoTracks());
+        hiddenVideo.muted = true;
+        hiddenVideo.style.display = 'none';
+        document.body.appendChild(hiddenVideo);
+        hiddenVideo.play().catch(function() {});
+        streams.push(tabStream);
+        // Listen for user stopping share
+        audioTracks[0].addEventListener('ended', function() {
+          showToast('Compartilhamento de áudio encerrado.', 'warn');
+          hiddenVideo.remove();
+        });
+        tabStream.getVideoTracks()[0].addEventListener('ended', function() {
+          hiddenVideo.remove();
         });
       }
     } catch (e) {
-      showToast('Não foi possível capturar audio da aba.', 'warn');
+      if (e.name !== 'NotAllowedError') {
+        showToast('Não foi possível capturar áudio do sistema/aba.', 'warn');
+      }
     }
   }
 
