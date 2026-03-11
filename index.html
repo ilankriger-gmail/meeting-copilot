@@ -1020,7 +1020,9 @@
     <div id="systemAudioNote" class="modal-note" style="display:none;margin-top:4px;font-size:11px;color:var(--warn);">
       Requer chave Deepgram acima. Sem ela, só o microfone é transcrito.
     </div>
+    <button class="modal-link" onclick="testSystemAudio()" style="color:var(--accent);margin-bottom:4px;">🔊 Testar captura de áudio do sistema</button>
     <button class="modal-link" onclick="document.getElementById('blackholeGuide').style.display='flex'">Como configurar BlackHole (captura avançada)?</button>
+    <div id="audioTestResult" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:12px;font-family:'Space Mono',monospace;background:var(--surface2);border:1px solid var(--border);white-space:pre-line;"></div>
 
     <div class="modal-note">
       🔒 Suas chaves ficam apenas nessa sessão, nunca são enviadas para servidores externos além das APIs da Anthropic e Deepgram.
@@ -1324,6 +1326,106 @@ function saveApiKey() {
 
   document.getElementById('apiModal').style.display = 'none';
   updateModeBadge();
+}
+
+// ============================================================
+// AUDIO TEST
+// ============================================================
+async function testSystemAudio() {
+  var result = document.getElementById('audioTestResult');
+  result.style.display = 'block';
+  var lines = [];
+  function log(msg, ok) {
+    lines.push((ok === true ? '✅ ' : ok === false ? '❌ ' : '⏳ ') + msg);
+    result.textContent = lines.join('\n');
+  }
+
+  log('Pedindo permissão de microfone...');
+  try {
+    var tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    tempStream.getTracks().forEach(function(t) { t.stop(); });
+    log('Permissão concedida', true);
+  } catch (e) {
+    log('Permissão NEGADA: ' + e.message, false);
+    return;
+  }
+
+  log('Buscando dispositivos de áudio...');
+  var devices = await navigator.mediaDevices.enumerateDevices();
+  var inputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
+  inputs.forEach(function(d) {
+    log('  Encontrado: "' + (d.label || '(sem label)') + '" [' + d.deviceId.substring(0, 8) + '...]');
+  });
+
+  var bh = inputs.find(function(d) {
+    return d.label.toLowerCase().includes('blackhole');
+  });
+
+  if (!bh) {
+    log('BlackHole NÃO encontrado nos dispositivos!', false);
+    log('Verifique: brew install blackhole-2ch');
+    return;
+  }
+  log('BlackHole encontrado: "' + bh.label + '"', true);
+
+  log('Capturando áudio do BlackHole...');
+  try {
+    var bhStream = await navigator.mediaDevices.getUserMedia({
+      audio: { deviceId: { exact: bh.deviceId } }
+    });
+    log('Stream capturado com sucesso', true);
+
+    log('Medindo nível de áudio por 3 segundos...');
+    log('  (toque algum som no Mac agora!)');
+
+    var ctx = new AudioContext();
+    var source = ctx.createMediaStreamSource(bhStream);
+    var analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+
+    var dataArray = new Float32Array(analyser.fftSize);
+    var maxRms = 0;
+    var checks = 0;
+
+    await new Promise(function(resolve) {
+      var interval = setInterval(function() {
+        analyser.getFloatTimeDomainData(dataArray);
+        var rms = 0;
+        for (var i = 0; i < dataArray.length; i++) {
+          rms += dataArray[i] * dataArray[i];
+        }
+        rms = Math.sqrt(rms / dataArray.length);
+        if (rms > maxRms) maxRms = rms;
+        checks++;
+
+        // Update progress
+        lines[lines.length - 1] = '  (toque algum som no Mac agora!) Nível: ' + (rms * 1000).toFixed(1);
+        result.textContent = lines.join('\n');
+
+        if (checks >= 30) { // 3 seconds
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100);
+    });
+
+    bhStream.getTracks().forEach(function(t) { t.stop(); });
+    ctx.close();
+
+    if (maxRms > 0.001) {
+      log('ÁUDIO DETECTADO! Nível máximo: ' + (maxRms * 1000).toFixed(1), true);
+      log('BlackHole está funcionando corretamente!', true);
+    } else {
+      log('SILÊNCIO - Nenhum áudio detectado no BlackHole', false);
+      log('Possíveis causas:', false);
+      log('  1. Multi-Saída não está como saída padrão do sistema');
+      log('  2. Nenhum som estava tocando durante o teste');
+      log('  3. Volume do sistema está no mudo');
+    }
+  } catch (e) {
+    log('Erro ao capturar BlackHole: ' + e.message, false);
+  }
 }
 
 // Show/hide system audio warning in modal
