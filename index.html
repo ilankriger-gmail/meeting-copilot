@@ -877,6 +877,24 @@
   }
   .mode-badge.deepgram { color: #4ecdc4; border-color: rgba(78,205,196,0.3); }
 
+  .audio-level-container {
+    --level: 0%;
+    width: 40px;
+    height: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    transition: opacity 0.3s;
+  }
+  .audio-level-bar {
+    height: 100%;
+    width: var(--level);
+    background: var(--accent);
+    transition: width 0.05s linear;
+    border-radius: 2px;
+  }
+
   /* AUDIO SOURCE CHECKBOXES */
   .audio-sources {
     display: flex;
@@ -1043,6 +1061,9 @@
       <span id="statusText">Parado</span>
     </div>
     <span class="mode-badge" id="modeBadge">SPEECH API</span>
+    <div class="audio-level-container" id="audioLevel" style="opacity:0;">
+      <div class="audio-level-bar"></div>
+    </div>
   </div>
 
   <div class="header-actions">
@@ -1465,6 +1486,8 @@ function stopRecording() {
   document.getElementById('statusPill').classList.remove('recording');
   document.getElementById('statusText').textContent = 'Parado';
   document.getElementById('timerBadge').classList.remove('active');
+  var lvl = document.getElementById('audioLevel');
+  if (lvl) { lvl.style.opacity = '0'; lvl.style.setProperty('--level', '0%'); }
 
   if (interimEl) {
     interimEl.remove();
@@ -1490,9 +1513,18 @@ async function captureAudioSources() {
   if (audioSources.system) {
     var systemCaptured = false;
 
+    // Ensure we have mic permission first (needed for enumerateDevices to return labels)
+    if (!audioSources.mic) {
+      try {
+        var tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach(function(t) { t.stop(); });
+      } catch (e) { /* permission denied, labels may be empty */ }
+    }
+
     // 1) Try BlackHole first (most reliable on macOS for system-wide audio)
     try {
       var devices = await navigator.mediaDevices.enumerateDevices();
+      console.log('[Audio] Devices found:', devices.filter(function(d) { return d.kind === 'audioinput'; }).map(function(d) { return d.label || '(no label)'; }));
       var blackhole = devices.find(function(d) {
         return d.kind === 'audioinput' && d.label.toLowerCase().includes('blackhole');
       });
@@ -1557,30 +1589,57 @@ async function captureAudioSources() {
 }
 
 function setupAudioPipeline(streams) {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-
+  // Use default sample rate (matches hardware, typically 48kHz)
+  // Forcing 16kHz can cause silence with some devices like BlackHole
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
   var targetSampleRate = 16000;
-  var inputCount = streams.length || 1;
-  var merger = audioContext.createChannelMerger(inputCount);
 
-  streams.forEach(function(stream, i) {
-    var source = audioContext.createMediaStreamSource(stream);
-    source.connect(merger, 0, Math.min(i, merger.numberOfInputs - 1));
-  });
-
-  // Use ScriptProcessorNode for raw PCM access
+  // Mix all streams by connecting them to the same destination (Web Audio sums automatically)
   var bufferSize = 4096;
   scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
 
-  merger.connect(scriptProcessor);
+  streams.forEach(function(stream, idx) {
+    var source = audioContext.createMediaStreamSource(stream);
+    // Use a GainNode per source so signals are summed into mono
+    var gain = audioContext.createGain();
+    gain.gain.value = 1.0;
+    source.connect(gain);
+    gain.connect(scriptProcessor);
+    console.log('[Audio] Source ' + idx + ' connected: ' + (stream.getAudioTracks()[0] || {}).label);
+  });
+
   scriptProcessor.connect(audioContext.destination); // needed for processing to work
 
-  scriptProcessor.onaudioprocess = function(event) {
-    if (!deepgramSocket || deepgramSocket.readyState !== WebSocket.OPEN) return;
+  // Audio level monitoring for debug
+  var silentFrames = 0;
+  var reportedSilence = false;
 
+  scriptProcessor.onaudioprocess = function(event) {
     var inputData = event.inputBuffer.getChannelData(0);
 
-    // Resample if needed
+    // Update audio level indicator
+    var rms = 0;
+    for (var k = 0; k < inputData.length; k++) {
+      rms += inputData[k] * inputData[k];
+    }
+    rms = Math.sqrt(rms / inputData.length);
+    updateAudioLevel(rms);
+
+    // Detect silence
+    if (rms < 0.001) {
+      silentFrames++;
+      if (silentFrames === 50 && !reportedSilence) {
+        reportedSilence = true;
+        showToast('Áudio capturado parece silencioso. Verifique se o som do sistema está ativo.', 'warn');
+      }
+    } else {
+      silentFrames = 0;
+      reportedSilence = false;
+    }
+
+    if (!deepgramSocket || deepgramSocket.readyState !== WebSocket.OPEN) return;
+
+    // Resample from native rate to 16kHz
     var pcmData;
     if (audioContext.sampleRate !== targetSampleRate) {
       pcmData = resampleBuffer(inputData, audioContext.sampleRate, targetSampleRate);
@@ -1597,6 +1656,14 @@ function setupAudioPipeline(streams) {
 
     deepgramSocket.send(int16.buffer);
   };
+}
+
+function updateAudioLevel(rms) {
+  var indicator = document.getElementById('audioLevel');
+  if (!indicator) return;
+  var level = Math.min(1, rms * 10); // scale up for visibility
+  indicator.style.opacity = '1';
+  indicator.style.setProperty('--level', (level * 100) + '%');
 }
 
 function resampleBuffer(buffer, fromRate, toRate) {
