@@ -1694,33 +1694,37 @@ function setupAudioPipeline(streams) {
   // Use default sample rate (matches hardware, typically 48kHz)
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   var targetSampleRate = 16000;
+  var bufferSize = 4096;
 
-  // Step 1: Merge all streams into a single MediaStream via MediaStreamDestination
-  // This is more reliable than connecting multiple sources to a ScriptProcessor directly
-  var mergedDest = audioContext.createMediaStreamDestination();
+  // Step 1: Merge all sources via ChannelMerger
+  var merger = audioContext.createChannelMerger(streams.length);
 
   streams.forEach(function(stream, idx) {
     var source = audioContext.createMediaStreamSource(stream);
-    var gain = audioContext.createGain();
-    gain.gain.value = 1.0;
-    // Force mono downmix for stereo sources (like BlackHole 2ch)
-    gain.channelCount = 1;
-    gain.channelCountMode = 'explicit';
-    gain.channelInterpretation = 'speakers';
-    source.connect(gain);
-    gain.connect(mergedDest);
+    source.connect(merger, 0, Math.min(idx, merger.numberOfInputs - 1));
     var trackLabel = (stream.getAudioTracks()[0] || {}).label || 'unknown';
     console.log('[Audio] Source ' + idx + ' connected: ' + trackLabel);
     showToast('Fonte ' + idx + ': ' + trackLabel, 'success');
   });
 
-  // Step 2: Read merged stream through ScriptProcessor
-  var mergedSource = audioContext.createMediaStreamSource(mergedDest.stream);
-  var bufferSize = 4096;
-  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+  // Step 2: Explicit mono downmix via GainNode
+  var monoMix = audioContext.createGain();
+  monoMix.channelCount = 1;
+  monoMix.channelCountMode = 'explicit';
+  monoMix.channelInterpretation = 'speakers';
+  merger.connect(monoMix);
 
-  mergedSource.connect(scriptProcessor);
-  scriptProcessor.connect(audioContext.destination); // needed for processing to work
+  // Step 3: ScriptProcessor reads the mono mix
+  scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+  monoMix.connect(scriptProcessor);
+
+  // Step 4: Connect to destination via MUTED gain (prevents feedback loop)
+  // Without connecting to destination, onaudioprocess won't fire.
+  // But playing captured audio back through speakers creates a loop via BlackHole.
+  var muteGain = audioContext.createGain();
+  muteGain.gain.value = 0;
+  scriptProcessor.connect(muteGain);
+  muteGain.connect(audioContext.destination);
 
   console.log('[Audio] Pipeline ready. AudioContext sampleRate=' + audioContext.sampleRate);
 
