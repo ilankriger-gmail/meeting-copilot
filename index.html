@@ -1020,8 +1020,11 @@
     <div id="systemAudioNote" class="modal-note" style="display:none;margin-top:4px;font-size:11px;color:var(--warn);">
       Requer chave Soniox acima. Sem ela, só o microfone é transcrito.
     </div>
-    <button class="modal-link" onclick="testSystemAudio()" style="color:var(--accent);margin-bottom:4px;">🔊 Testar captura de áudio do sistema</button>
-    <button class="modal-link" onclick="document.getElementById('blackholeGuide').style.display='flex'">Como configurar BlackHole (captura avançada)?</button>
+    <div id="systemAudioHint" class="modal-note" style="display:none;margin-top:4px;font-size:11px;color:var(--text2);">
+      Ao gravar, selecione "Tela inteira" e marque "Compartilhar áudio do sistema" no diálogo do Chrome.
+    </div>
+    <button class="modal-link" onclick="testSystemAudio()" style="color:var(--accent);margin-bottom:4px;">Testar captura de áudio do sistema</button>
+    <button class="modal-link" onclick="document.getElementById('blackholeGuide').style.display='flex'">Como configurar BlackHole (alternativa avançada)?</button>
     <div id="audioTestResult" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:12px;font-family:'Space Mono',monospace;background:var(--surface2);border:1px solid var(--border);white-space:pre-line;"></div>
 
     <div class="modal-note">
@@ -1435,7 +1438,9 @@ async function testSystemAudio() {
   var dgInput = document.getElementById('snxKeyInput');
   function updateNote() {
     var note = document.getElementById('systemAudioNote');
+    var hint = document.getElementById('systemAudioHint');
     if (note) note.style.display = (srcSystem.checked && !dgInput.value.trim()) ? 'block' : 'none';
+    if (hint) hint.style.display = (srcSystem.checked && dgInput.value.trim()) ? 'block' : 'none';
   }
   srcSystem.addEventListener('change', updateNote);
   dgInput.addEventListener('input', updateNote);
@@ -1617,75 +1622,77 @@ async function captureAudioSources() {
   if (audioSources.system) {
     var systemCaptured = false;
 
-    // Ensure we have mic permission first (needed for enumerateDevices to return labels)
-    if (!audioSources.mic) {
-      try {
-        var tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        tempStream.getTracks().forEach(function(t) { t.stop(); });
-      } catch (e) { /* permission denied, labels may be empty */ }
-    }
-
-    // 1) Try BlackHole first (most reliable on macOS for system-wide audio)
+    // 1) Primary: getDisplayMedia with system audio
+    // Most reliable on macOS Sequoia — uses ScreenCaptureKit natively
     try {
-      var devices = await navigator.mediaDevices.enumerateDevices();
-      console.log('[Audio] Devices found:', devices.filter(function(d) { return d.kind === 'audioinput'; }).map(function(d) { return d.label || '(no label)'; }));
-      var blackhole = devices.find(function(d) {
-        return d.kind === 'audioinput' && d.label.toLowerCase().includes('blackhole');
+      showToast('Selecione "Tela inteira" e marque "Compartilhar áudio do sistema".', 'info');
+      var displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: { suppressLocalAudioPlayback: false },
+        systemAudio: 'include',
+        selfBrowserSurface: 'exclude'
       });
-      if (blackhole) {
-        var bhStream = await navigator.mediaDevices.getUserMedia({
-          audio: { deviceId: { exact: blackhole.deviceId } }
-        });
-        streams.push(bhStream);
+      var audioTracks = displayStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        showToast('Nenhum áudio capturado. Marque "Compartilhar áudio do sistema" no diálogo.', 'warn');
+        displayStream.getVideoTracks().forEach(function(t) { t.stop(); });
+      } else {
+        // Keep video tracks alive (stopping them kills the audio stream on macOS)
+        var hiddenVideo = document.createElement('video');
+        hiddenVideo.srcObject = new MediaStream(displayStream.getVideoTracks());
+        hiddenVideo.muted = true;
+        hiddenVideo.style.display = 'none';
+        document.body.appendChild(hiddenVideo);
+        hiddenVideo.play().catch(function() {});
+        streams.push(displayStream);
         systemCaptured = true;
-        showToast('Capturando áudio do sistema via BlackHole.', 'success');
+        showToast('Capturando áudio do sistema via compartilhamento de tela.', 'success');
+        audioTracks[0].addEventListener('ended', function() {
+          showToast('Compartilhamento de áudio encerrado.', 'warn');
+          hiddenVideo.remove();
+        });
+        displayStream.getVideoTracks()[0].addEventListener('ended', function() {
+          hiddenVideo.remove();
+        });
       }
     } catch (e) {
-      console.warn('BlackHole capture failed:', e);
+      if (e.name !== 'NotAllowedError') {
+        showToast('Erro ao capturar tela: ' + e.message, 'warn');
+      }
+      console.warn('[Audio] getDisplayMedia failed:', e);
     }
 
-    // 2) Fallback: getDisplayMedia (captures tab/screen audio)
+    // 2) Fallback: BlackHole (if screen sharing was cancelled or failed)
     if (!systemCaptured) {
+      // Ensure mic permission for device labels
+      if (!audioSources.mic) {
+        try {
+          var tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          tempStream.getTracks().forEach(function(t) { t.stop(); });
+        } catch (e) { /* permission denied */ }
+      }
+
       try {
-        var tabStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: {
-            suppressLocalAudioPlayback: false
-          },
-          systemAudio: 'include'
+        var devices = await navigator.mediaDevices.enumerateDevices();
+        console.log('[Audio] Devices:', devices.filter(function(d) { return d.kind === 'audioinput'; }).map(function(d) { return d.label || '(no label)'; }));
+        var blackhole = devices.find(function(d) {
+          return d.kind === 'audioinput' && d.label.toLowerCase().includes('blackhole');
         });
-        var audioTracks = tabStream.getAudioTracks();
-        if (audioTracks.length === 0) {
-          showToast('Nenhum áudio capturado. No diálogo do Chrome, marque "Compartilhar áudio do sistema" ou "Também compartilhar áudio da aba".', 'warn');
-          tabStream.getVideoTracks().forEach(function(t) { t.stop(); });
-        } else {
-          // Keep video tracks alive (stopping them kills the audio stream)
-          var hiddenVideo = document.createElement('video');
-          hiddenVideo.srcObject = new MediaStream(tabStream.getVideoTracks());
-          hiddenVideo.muted = true;
-          hiddenVideo.style.display = 'none';
-          document.body.appendChild(hiddenVideo);
-          hiddenVideo.play().catch(function() {});
-          streams.push(tabStream);
+        if (blackhole) {
+          var bhStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: blackhole.deviceId } }
+          });
+          streams.push(bhStream);
           systemCaptured = true;
-          showToast('Capturando áudio via compartilhamento de tela.', 'success');
-          audioTracks[0].addEventListener('ended', function() {
-            showToast('Compartilhamento de áudio encerrado.', 'warn');
-            hiddenVideo.remove();
-          });
-          tabStream.getVideoTracks()[0].addEventListener('ended', function() {
-            hiddenVideo.remove();
-          });
+          showToast('Capturando áudio do sistema via BlackHole.', 'success');
         }
       } catch (e) {
-        if (e.name !== 'NotAllowedError') {
-          showToast('Não foi possível capturar áudio do sistema.', 'warn');
-        }
+        console.warn('[Audio] BlackHole capture failed:', e);
       }
     }
 
     if (!systemCaptured) {
-      showToast('Áudio do sistema não capturado. Instale BlackHole (brew install blackhole-2ch) para captura confiável no macOS.', 'warn');
+      showToast('Áudio do sistema não capturado. Tente novamente e marque "Compartilhar áudio" no diálogo.', 'warn');
     }
   }
 
