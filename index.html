@@ -1027,30 +1027,8 @@
     <button class="modal-link" onclick="document.getElementById('blackholeGuide').style.display='flex'">Como configurar BlackHole (alternativa avançada)?</button>
     <div id="audioTestResult" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:12px;font-family:'Space Mono',monospace;background:var(--surface2);border:1px solid var(--border);white-space:pre-line;"></div>
 
-    <hr class="modal-divider">
-    <div class="modal-section-title">Proteção com senha (opcional)</div>
-    <label class="modal-label" for="setupPasswordInput">Senha para proteger suas chaves</label>
-    <input type="password" id="setupPasswordInput" placeholder="Criar uma senha (opcional)" />
-    <div style="font-size:11px;color:var(--text2);margin-top:-10px;margin-bottom:12px;">Se definida, suas chaves serão criptografadas e salvas localmente.</div>
-
     <div class="modal-note">
-      🔒 Suas chaves ficam apenas no seu navegador, protegidas por senha. Nunca são enviadas para servidores externos além das APIs da Anthropic e Soniox.
-    </div>
-  </div>
-</div>
-
-<!-- UNLOCK MODAL -->
-<div class="modal-overlay" id="unlockModal" style="display:none;" role="dialog" aria-modal="true">
-  <div class="modal">
-    <h2>🔐 Meeting Co-Pilot</h2>
-    <p>Suas chaves estão salvas. Digite sua senha para desbloquear.</p>
-    <input type="password" id="unlockPasswordInput" placeholder="Senha..." onkeydown="if(event.key==='Enter')tryUnlock()" />
-    <div id="unlockError" style="display:none;color:var(--red);font-size:12px;margin-bottom:12px;"></div>
-    <button class="btn btn-record" style="width:100%;justify-content:center;" onclick="tryUnlock()">
-      Desbloquear →
-    </button>
-    <div style="text-align:center;margin-top:16px;">
-      <button class="modal-link" onclick="forgetData()">Esquecer dados salvos</button>
+      🔒 Suas chaves ficam salvas no navegador para você não precisar digitar de novo. Nunca são enviadas para servidores externos além das APIs da Anthropic e Soniox.
     </div>
   </div>
 </div>
@@ -1325,111 +1303,32 @@ function showToast(message, type) {
 }
 
 // ============================================================
-// ENCRYPTED STORAGE (Web Crypto API)
+// PERSISTENT STORAGE (localStorage)
 // ============================================================
-async function deriveKey(password, salt) {
-  var enc = new TextEncoder();
-  var keyMaterial = await crypto.subtle.importKey(
-    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-async function encryptData(password, data) {
-  var salt = crypto.getRandomValues(new Uint8Array(16));
-  var iv = crypto.getRandomValues(new Uint8Array(12));
-  var key = await deriveKey(password, salt);
-  var enc = new TextEncoder();
-  var encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
-    key,
-    enc.encode(JSON.stringify(data))
-  );
-  return {
-    salt: btoa(String.fromCharCode.apply(null, salt)),
-    iv: btoa(String.fromCharCode.apply(null, iv)),
-    data: btoa(String.fromCharCode.apply(null, new Uint8Array(encrypted)))
-  };
-}
-
-async function decryptData(password, blob) {
-  var salt = Uint8Array.from(atob(blob.salt), function(c) { return c.charCodeAt(0); });
-  var iv = Uint8Array.from(atob(blob.iv), function(c) { return c.charCodeAt(0); });
-  var data = Uint8Array.from(atob(blob.data), function(c) { return c.charCodeAt(0); });
-  var key = await deriveKey(password, salt);
-  var decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: iv },
-    key,
-    data
-  );
-  return JSON.parse(new TextDecoder().decode(decrypted));
-}
-
-async function saveEncrypted(password) {
-  var payload = {
-    apiKey: apiKey,
-    sonioxKey: sonioxKey,
-    srcMic: audioSources.mic,
-    srcSystem: audioSources.system
-  };
+function saveKeys() {
   try {
-    var blob = await encryptData(password, payload);
-    localStorage.setItem('mcp_salt', blob.salt);
-    localStorage.setItem('mcp_iv', blob.iv);
-    localStorage.setItem('mcp_data', blob.data);
-    showToast('Chaves salvas com segurança!', 'success');
-  } catch (e) {
-    showToast('Erro ao salvar: ' + e.message, 'error');
-  }
+    localStorage.setItem('mcp_keys', JSON.stringify({
+      apiKey: apiKey,
+      sonioxKey: sonioxKey,
+      srcMic: audioSources.mic,
+      srcSystem: audioSources.system
+    }));
+  } catch (e) { /* quota exceeded — ignore */ }
 }
 
-async function tryUnlock() {
-  var pw = document.getElementById('unlockPasswordInput').value;
-  var errEl = document.getElementById('unlockError');
-  if (!pw) {
-    errEl.textContent = 'Digite sua senha.';
-    errEl.style.display = 'block';
-    return;
-  }
+function loadKeys() {
   try {
-    var blob = {
-      salt: localStorage.getItem('mcp_salt'),
-      iv: localStorage.getItem('mcp_iv'),
-      data: localStorage.getItem('mcp_data')
-    };
-    var payload = await decryptData(pw, blob);
-    // Populate globals
-    apiKey = payload.apiKey || '';
-    sonioxKey = payload.sonioxKey || '';
+    var raw = localStorage.getItem('mcp_keys');
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    if (!d.apiKey) return false;
+    apiKey = d.apiKey;
+    sonioxKey = d.sonioxKey || '';
     if (sonioxKey) useSoniox = true;
-    audioSources.mic = payload.srcMic !== false;
-    audioSources.system = payload.srcSystem === true;
-    // Hide modal, proceed
-    document.getElementById('unlockModal').style.display = 'none';
-    updateModeBadge();
-    showToast('Desbloqueado com sucesso!', 'success');
-  } catch (e) {
-    errEl.textContent = 'Senha incorreta. Tente novamente.';
-    errEl.style.display = 'block';
-    document.getElementById('unlockPasswordInput').value = '';
-    document.getElementById('unlockPasswordInput').focus();
-  }
-}
-
-function forgetData() {
-  if (!confirm('Tem certeza? Suas chaves salvas serão apagadas permanentemente.')) return;
-  localStorage.removeItem('mcp_salt');
-  localStorage.removeItem('mcp_iv');
-  localStorage.removeItem('mcp_data');
-  document.getElementById('unlockModal').style.display = 'none';
-  document.getElementById('apiModal').style.display = 'flex';
-  showToast('Dados apagados.', 'success');
+    audioSources.mic = d.srcMic !== false;
+    audioSources.system = d.srcSystem === true;
+    return true;
+  } catch (e) { return false; }
 }
 
 // ============================================================
@@ -1459,13 +1358,7 @@ function saveApiKey() {
   }
 
   document.getElementById('apiModal').style.display = 'none';
-
-  // Persist encrypted if password set
-  var setupPw = document.getElementById('setupPasswordInput').value;
-  if (setupPw) {
-    saveEncrypted(setupPw);
-  }
-
+  saveKeys();
   updateModeBadge();
 }
 
@@ -2498,11 +2391,11 @@ async function runAutoAnalysis() {
 // ============================================================
 document.getElementById('chatInput').addEventListener('keydown', handleChatKey);
 
-// Check for saved data on load
+// Auto-load saved keys on page load
 (function() {
-  if (localStorage.getItem('mcp_data')) {
+  if (loadKeys()) {
     document.getElementById('apiModal').style.display = 'none';
-    document.getElementById('unlockModal').style.display = 'flex';
+    updateModeBadge();
   }
 })();
 </script>
