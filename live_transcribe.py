@@ -264,9 +264,9 @@ class LiveTranscriber:
 
         print("  Conectando ao Soniox...", end=" ", flush=True)
         try:
-            self.ws = connect(SONIOX_WS_URL)
+            self.ws = connect(SONIOX_WS_URL, open_timeout=10, close_timeout=5)
             self.ws.send(json.dumps(config))
-            print("OK")
+            print("OK", flush=True)
         except Exception as e:
             print(f"FALHOU: {e}", file=sys.stderr)
             sys.exit(1)
