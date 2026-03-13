@@ -875,7 +875,7 @@
     border: 1px solid var(--border);
     color: var(--text2);
   }
-  .mode-badge.deepgram { color: #4ecdc4; border-color: rgba(78,205,196,0.3); }
+  .mode-badge.soniox { color: #4ecdc4; border-color: rgba(78,205,196,0.3); }
 
   .audio-level-container {
     --level: 0%;
@@ -1002,9 +1002,9 @@
 
     <hr class="modal-divider">
 
-    <div class="modal-section-title">Deepgram (opcional — transcrição avançada com diarização)</div>
-    <label class="modal-label" for="dgKeyInput">Deepgram API Key</label>
-    <input type="password" id="dgKeyInput" placeholder="Token Deepgram (opcional)" />
+    <div class="modal-section-title">Soniox (opcional — transcrição avançada com diarização)</div>
+    <label class="modal-label" for="snxKeyInput">Soniox API Key</label>
+    <input type="password" id="snxKeyInput" placeholder="Token Soniox (opcional)" />
 
     <div class="modal-section-title">Fontes de áudio</div>
     <div class="audio-sources">
@@ -1018,14 +1018,14 @@
       </label>
     </div>
     <div id="systemAudioNote" class="modal-note" style="display:none;margin-top:4px;font-size:11px;color:var(--warn);">
-      Requer chave Deepgram acima. Sem ela, só o microfone é transcrito.
+      Requer chave Soniox acima. Sem ela, só o microfone é transcrito.
     </div>
     <button class="modal-link" onclick="testSystemAudio()" style="color:var(--accent);margin-bottom:4px;">🔊 Testar captura de áudio do sistema</button>
     <button class="modal-link" onclick="document.getElementById('blackholeGuide').style.display='flex'">Como configurar BlackHole (captura avançada)?</button>
     <div id="audioTestResult" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:12px;font-family:'Space Mono',monospace;background:var(--surface2);border:1px solid var(--border);white-space:pre-line;"></div>
 
     <div class="modal-note">
-      🔒 Suas chaves ficam apenas nessa sessão, nunca são enviadas para servidores externos além das APIs da Anthropic e Deepgram.
+      🔒 Suas chaves ficam apenas nessa sessão, nunca são enviadas para servidores externos além das APIs da Anthropic e Soniox.
     </div>
   </div>
 </div>
@@ -1181,18 +1181,18 @@ let wordCount = 0;
 let autoAnalyzeTimer = null;
 let lastAnalyzedLength = 0;
 
-// DEEPGRAM STATE
-let deepgramKey = '';
-let deepgramSocket = null;
+// SONIOX STATE
+let sonioxKey = '';
+let sonioxSocket = null;
 let audioContext = null;
 let mediaStreams = [];
 let scriptProcessor = null;
 let audioNodes = []; // MUST keep references to prevent Chrome GC killing audio nodes
-let useDeepgram = false;
+let useSoniox = false;
 let speakers = {}; // { 0: { name: 'Falante 1', color: '#ff6b9d', wordCount: 0 } }
 let speakerCount = 0;
-let dgReconnectAttempts = 0;
-let dgMaxReconnects = 5;
+let snxReconnectAttempts = 0;
+let snxMaxReconnects = 5;
 let audioSources = { mic: true, system: false };
 
 const SPEAKER_COLORS = [
@@ -1277,9 +1277,9 @@ function updateSpeakerLegend() {
 // ============================================================
 function updateModeBadge() {
   var badge = document.getElementById('modeBadge');
-  if (useDeepgram) {
-    badge.textContent = 'DEEPGRAM';
-    badge.className = 'mode-badge deepgram';
+  if (useSoniox) {
+    badge.textContent = 'SONIOX';
+    badge.className = 'mode-badge soniox';
   } else {
     badge.textContent = 'SPEECH API';
     badge.className = 'mode-badge';
@@ -1310,19 +1310,19 @@ function saveApiKey() {
   }
   apiKey = val;
 
-  // Deepgram key (optional)
-  var dgVal = document.getElementById('dgKeyInput').value.trim();
-  if (dgVal) {
-    deepgramKey = dgVal;
-    useDeepgram = true;
+  // Soniox key (optional)
+  var snxVal = document.getElementById('snxKeyInput').value.trim();
+  if (snxVal) {
+    sonioxKey = snxVal;
+    useSoniox = true;
   }
 
   // Audio sources
   audioSources.mic = document.getElementById('srcMic').checked;
   audioSources.system = document.getElementById('srcSystem').checked;
 
-  if (audioSources.system && !useDeepgram) {
-    showToast('Áudio do sistema requer chave Deepgram para transcrição. Sem ela, só o microfone será usado.', 'warn');
+  if (audioSources.system && !useSoniox) {
+    showToast('Áudio do sistema requer chave Soniox para transcrição. Sem ela, só o microfone será usado.', 'warn');
   }
 
   document.getElementById('apiModal').style.display = 'none';
@@ -1432,7 +1432,7 @@ async function testSystemAudio() {
 // Show/hide system audio warning in modal
 (function() {
   var srcSystem = document.getElementById('srcSystem');
-  var dgInput = document.getElementById('dgKeyInput');
+  var dgInput = document.getElementById('snxKeyInput');
   function updateNote() {
     var note = document.getElementById('systemAudioNote');
     if (note) note.style.display = (srcSystem.checked && !dgInput.value.trim()) ? 'block' : 'none';
@@ -1454,8 +1454,8 @@ function toggleRecording() {
 }
 
 function startRecording() {
-  if (useDeepgram) {
-    startDeepgramRecording();
+  if (useSoniox) {
+    startSonioxRecording();
   } else {
     startWebSpeechRecording();
   }
@@ -1509,9 +1509,9 @@ function startWebSpeechRecording() {
 }
 
 // ============================================================
-// DEEPGRAM RECORDING
+// SONIOX RECORDING
 // ============================================================
-async function startDeepgramRecording() {
+async function startSonioxRecording() {
   // Capture audio sources
   var streams = await captureAudioSources();
   if (streams.length === 0) {
@@ -1523,8 +1523,8 @@ async function startDeepgramRecording() {
   // Setup audio pipeline
   await setupAudioPipeline(streams);
 
-  // Connect to Deepgram
-  connectDeepgram();
+  // Connect to Soniox
+  connectSoniox();
 
   isRecording = true;
 
@@ -1557,8 +1557,8 @@ function setRecordingUI() {
 }
 
 function stopRecording() {
-  if (useDeepgram) {
-    closeDeepgram();
+  if (useSoniox) {
+    closeSoniox();
     if (scriptProcessor) {
       scriptProcessor.disconnect();
       scriptProcessor = null;
@@ -1600,7 +1600,7 @@ function stopRecording() {
 }
 
 // ============================================================
-// AUDIO PIPELINE (for Deepgram)
+// AUDIO PIPELINE (for Soniox)
 // ============================================================
 async function captureAudioSources() {
   var streams = [];
@@ -1757,7 +1757,7 @@ async function setupAudioPipeline(streams) {
       reportedSilence = false;
     }
 
-    if (!deepgramSocket || deepgramSocket.readyState !== WebSocket.OPEN) return;
+    if (!sonioxSocket || sonioxSocket.readyState !== WebSocket.OPEN) return;
 
     // Resample from native rate to 16kHz
     var pcmData;
@@ -1774,7 +1774,7 @@ async function setupAudioPipeline(streams) {
       int16[j] = s < 0 ? s * 0x8000 : s * 0x7FFF;
     }
 
-    deepgramSocket.send(int16.buffer);
+    sonioxSocket.send(int16.buffer);
   };
 }
 
@@ -1802,113 +1802,148 @@ function resampleBuffer(buffer, fromRate, toRate) {
 }
 
 // ============================================================
-// DEEPGRAM WEBSOCKET
+// SONIOX WEBSOCKET
 // ============================================================
-function connectDeepgram() {
-  var params = new URLSearchParams({
-    model: 'nova-2',
-    language: 'pt-BR',
-    diarize: 'true',
-    punctuate: 'true',
-    encoding: 'linear16',
-    sample_rate: '16000',
-    channels: '1',
-    interim_results: 'true',
-    utterance_end_ms: '1500'
-  });
-  var url = 'wss://api.deepgram.com/v1/listen?' + params.toString();
+function connectSoniox() {
+  var url = 'wss://stt-rt.soniox.com/transcribe-websocket';
 
-  deepgramSocket = new WebSocket(url, ['token', deepgramKey]);
+  sonioxSocket = new WebSocket(url);
 
-  deepgramSocket.onopen = function() {
-    dgReconnectAttempts = 0;
-    showToast('Deepgram conectado!', 'success');
+  sonioxSocket.onopen = function() {
+    snxReconnectAttempts = 0;
+    // Send config as first message
+    sonioxSocket.send(JSON.stringify({
+      api_key: sonioxKey,
+      model: 'stt-rt-v4',
+      audio_format: 'pcm_s16le',
+      sample_rate: 16000,
+      num_channels: 1,
+      language_hints: ['pt'],
+      language_hints_strict: true,
+      enable_speaker_diarization: true,
+      enable_endpoint_detection: true,
+      max_endpoint_delay_ms: 1500
+    }));
+    showToast('Soniox conectado!', 'success');
   };
 
-  deepgramSocket.onmessage = function(event) {
+  sonioxSocket.onmessage = function(event) {
     try {
-      handleDeepgramMessage(JSON.parse(event.data));
+      handleSonioxMessage(JSON.parse(event.data));
     } catch (e) {
-      console.error('Deepgram parse error:', e);
+      console.error('Soniox parse error:', e);
     }
   };
 
-  deepgramSocket.onerror = function(err) {
-    console.error('Deepgram WebSocket error:', err);
+  sonioxSocket.onerror = function(err) {
+    console.error('Soniox WebSocket error:', err);
   };
 
-  deepgramSocket.onclose = function(event) {
-    if (isRecording && dgReconnectAttempts < dgMaxReconnects) {
-      dgReconnectAttempts++;
-      var delay = Math.min(1000 * Math.pow(2, dgReconnectAttempts), 30000);
-      showToast('Reconectando ao Deepgram (' + dgReconnectAttempts + '/' + dgMaxReconnects + ')...', 'warn');
-      setTimeout(connectDeepgram, delay);
-    } else if (dgReconnectAttempts >= dgMaxReconnects) {
-      showToast('Falha ao reconectar ao Deepgram. Reinicie a gravação.', 'error');
+  sonioxSocket.onclose = function(event) {
+    if (isRecording && snxReconnectAttempts < snxMaxReconnects) {
+      snxReconnectAttempts++;
+      var delay = Math.min(1000 * Math.pow(2, snxReconnectAttempts), 30000);
+      showToast('Reconectando ao Soniox (' + snxReconnectAttempts + '/' + snxMaxReconnects + ')...', 'warn');
+      setTimeout(connectSoniox, delay);
+    } else if (snxReconnectAttempts >= snxMaxReconnects) {
+      showToast('Falha ao reconectar ao Soniox. Reinicie a gravação.', 'error');
     }
   };
 }
 
-function handleDeepgramMessage(data) {
-  var alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
-  if (!alt || !alt.transcript) return;
+// Accumulate final tokens grouped by speaker for Soniox
+var sonioxPendingTokens = [];
 
-  if (data.is_final) {
-    // Group words by speaker
-    if (alt.words && alt.words.length > 0) {
-      var groups = groupWordsBySpeaker(alt.words);
-      groups.forEach(function(group) {
-        if (group.text.trim()) {
-          addSegment(group.text.trim(), group.speaker);
-        }
-      });
-    } else if (alt.transcript.trim()) {
-      addSegment(alt.transcript.trim());
+function handleSonioxMessage(data) {
+  // Handle errors
+  if (data.error_code) {
+    console.error('Soniox error:', data.error_code, data.error_message);
+    showToast('Soniox erro: ' + (data.error_message || data.error_code), 'error');
+    return;
+  }
+
+  // Handle session finished
+  if (data.finished) {
+    // Flush any pending tokens
+    flushSonioxTokens();
+    return;
+  }
+
+  if (!data.tokens || data.tokens.length === 0) return;
+
+  // Separate final and non-final tokens
+  var hasFinal = false;
+  var interimText = '';
+
+  data.tokens.forEach(function(token) {
+    if (token.is_final) {
+      hasFinal = true;
+      sonioxPendingTokens.push(token);
+    } else {
+      interimText += token.text;
     }
+  });
+
+  // If we got final tokens, flush accumulated segments
+  if (hasFinal) {
+    flushSonioxTokens();
+  }
+
+  // Show interim text
+  if (interimText) {
+    updateInterim(interimText);
+  } else if (hasFinal) {
     updateInterim('');
-  } else {
-    // Show interim
-    updateInterim(alt.transcript);
   }
 }
 
-function groupWordsBySpeaker(words) {
+function flushSonioxTokens() {
+  if (sonioxPendingTokens.length === 0) return;
+
+  // Group consecutive tokens by speaker
   var groups = [];
   var currentSpeaker = null;
-  var currentWords = [];
+  var currentTexts = [];
 
-  words.forEach(function(word) {
-    var spk = word.speaker !== undefined ? word.speaker : null;
-    if (spk !== currentSpeaker && currentWords.length > 0) {
+  sonioxPendingTokens.forEach(function(token) {
+    var spk = token.speaker !== undefined && token.speaker !== null ? token.speaker : null;
+    if (spk !== currentSpeaker && currentTexts.length > 0) {
       groups.push({
         speaker: currentSpeaker,
-        text: currentWords.join(' ')
+        text: currentTexts.join('').trim()
       });
-      currentWords = [];
+      currentTexts = [];
     }
     currentSpeaker = spk;
-    currentWords.push(word.punctuated_word || word.word);
+    currentTexts.push(token.text);
   });
 
-  if (currentWords.length > 0) {
+  if (currentTexts.length > 0) {
     groups.push({
       speaker: currentSpeaker,
-      text: currentWords.join(' ')
+      text: currentTexts.join('').trim()
     });
   }
 
-  return groups;
+  groups.forEach(function(group) {
+    if (group.text) {
+      addSegment(group.text, group.speaker);
+    }
+  });
+
+  sonioxPendingTokens = [];
 }
 
-function closeDeepgram() {
-  if (deepgramSocket) {
-    if (deepgramSocket.readyState === WebSocket.OPEN) {
-      deepgramSocket.send(new Uint8Array(0)); // signal end
+function closeSoniox() {
+  if (sonioxSocket) {
+    if (sonioxSocket.readyState === WebSocket.OPEN) {
+      sonioxSocket.send(''); // empty string signals end for Soniox
     }
-    deepgramSocket.onclose = null; // prevent reconnection
-    deepgramSocket.close();
-    deepgramSocket = null;
+    sonioxSocket.onclose = null; // prevent reconnection
+    sonioxSocket.close();
+    sonioxSocket = null;
   }
+  sonioxPendingTokens = [];
 }
 
 // ============================================================
