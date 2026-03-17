@@ -12,13 +12,14 @@
     --surface: #111318;
     --surface2: #181b22;
     --border: #1e2230;
-    --accent: #00ff88;
+    --accent: #00e680;
+    --accent-bright: #00ff88;
     --accent2: #4d94ff;
-    --accent-dim: rgba(0,255,136,0.08);
+    --accent-dim: rgba(0,229,128,0.08);
     --warn: #ff6b35;
     --text: #e8eaf0;
-    --text2: #848b98;
-    --text3: #9ca3af;
+    --text2: #949ba8;
+    --text3: #adb4bf;
     --red: #ff4444;
     --pulse-size: 8px;
   }
@@ -28,14 +29,21 @@
   body {
     background: var(--bg);
     background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(0,255,136,0.03) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, rgba(0,102,255,0.03) 0%, transparent 50%);
+      radial-gradient(ellipse at 20% 50%, rgba(0,229,128,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,102,255,0.05) 0%, transparent 50%);
     color: var(--text);
     font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
     height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  ::selection {
+    background: rgba(0,229,128,0.25);
+    color: var(--text);
   }
 
   /* HEADER */
@@ -43,7 +51,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 24px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     flex-shrink: 0;
@@ -176,15 +184,6 @@
     background: transparent;
     color: var(--text2);
     border: 1px solid var(--border);
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.02em;
   }
   .btn-danger:hover {
     border-color: var(--red);
@@ -207,6 +206,7 @@
     flex-direction: column;
     border-right: 1px solid var(--border);
     overflow: hidden;
+    background: var(--bg);
   }
 
   .panel-header {
@@ -232,7 +232,7 @@
   .panel-label .dot {
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-bright);
   }
 
   .word-count {
@@ -244,8 +244,11 @@
   .transcript-body {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 16px 20px;
     scroll-behavior: smooth;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .transcript-body::-webkit-scrollbar { width: 4px; }
@@ -265,7 +268,7 @@
 
   .transcript-empty .empty-icon {
     font-size: 40px;
-    opacity: 0.5;
+    opacity: 0.75;
   }
 
   .transcript-empty p {
@@ -278,7 +281,7 @@
   .segment {
     display: flex;
     gap: 12px;
-    margin-bottom: 14px;
+    margin-bottom: 0;
     animation: fadeSlideIn 0.3s ease;
   }
 
@@ -298,7 +301,7 @@
 
   .segment-text {
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.55;
     color: var(--text);
   }
 
@@ -311,7 +314,7 @@
     display: inline-block;
     width: 2px;
     height: 14px;
-    background: var(--accent);
+    background: var(--accent-bright);
     margin-left: 2px;
     vertical-align: middle;
     animation: cursor-blink 0.8s infinite;
@@ -388,7 +391,7 @@
   }
   .ai-tab.active {
     color: var(--text);
-    border-bottom-color: var(--accent);
+    border-bottom: 3px solid var(--accent);
   }
   .ai-tab:hover:not(.active) { color: var(--text3); }
 
@@ -404,7 +407,7 @@
   .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -431,10 +434,10 @@
   .msg.ai .msg-meta { color: var(--accent); }
 
   .msg-bubble {
-    padding: 10px 13px;
+    padding: 10px 14px;
     border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.55;
   }
 
   .msg.user .msg-bubble {
@@ -500,7 +503,6 @@
     transition: border-color 0.2s;
   }
   .chat-input:focus { border-color: var(--accent); }
-  .chat-input:not(:placeholder-shown) { border-color: rgba(0,255,136,0.2); }
   .chat-input::placeholder { color: var(--text2); }
 
   .btn-send {
@@ -522,7 +524,7 @@
   .insights-body {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -548,16 +550,19 @@
 
   .insight-card.blindspot {
     border-color: rgba(255,107,53,0.3);
+    border-left: 3px solid var(--warn);
     background: rgba(255,107,53,0.05);
   }
 
   .insight-card.tip {
-    border-color: rgba(0,255,136,0.2);
+    border-color: rgba(0,229,128,0.2);
+    border-left: 3px solid var(--accent);
     background: var(--accent-dim);
   }
 
   .insight-card.question {
     border-color: rgba(0,102,255,0.25);
+    border-left: 3px solid var(--accent2);
     background: rgba(0,102,255,0.05);
   }
 
@@ -634,8 +639,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 0 12px 10px;
+    padding: 8px 16px;
     flex-shrink: 0;
+    border-top: 1px solid var(--border);
   }
 
   .quick-prompt {
@@ -723,12 +729,12 @@
 
   /* FOCUS-VISIBLE */
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid rgba(0,229,128,0.6);
     outline-offset: 2px;
   }
 
   button:focus-visible, .ai-tab:focus-visible, .quick-prompt:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid rgba(0,229,128,0.6);
     outline-offset: 2px;
   }
 
@@ -760,8 +766,8 @@
     to { opacity: 1; transform: translateX(0); }
   }
   @keyframes toastOut {
-    from { opacity: 1; }
-    to { opacity: 0; transform: translateY(-10px); }
+    from { opacity: 1; pointer-events: auto; }
+    to { opacity: 0; transform: translateY(-10px); pointer-events: none; }
   }
 
   /* SEND BUTTON SPINNER */
@@ -781,14 +787,26 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
+    .tab-content.active,
+    .modal,
+    .toast {
+      transition: opacity 0.15s ease !important;
+    }
+  }
+
+  /* SCROLLBAR FIREFOX */
+  .transcript-body, .chat-messages, .insights-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
 
   /* RESPONSIVE: TABLET */
   @media (max-width: 900px) {
     .main {
       grid-template-columns: 1fr;
-      grid-template-rows: 1fr 1fr;
+      grid-template-rows: 3fr 2fr;
     }
     .transcript-panel {
       border-right: none;
@@ -804,8 +822,17 @@
       justify-content: flex-start;
       gap: 8px;
       margin-top: 8px;
+      flex-wrap: wrap;
     }
     .meeting-title-input { width: 180px; }
+  }
+
+  /* RESPONSIVE: SMALL TABLET */
+  @media (max-width: 768px) {
+    .main {
+      grid-template-rows: 2fr 1fr;
+    }
+    .quick-prompts { display: none; }
   }
 
   /* RESPONSIVE: MOBILE */
@@ -813,14 +840,69 @@
     .main {
       grid-template-columns: 1fr;
       grid-template-rows: 1fr;
+      position: relative;
     }
-    .ai-panel { display: none; }
+    .ai-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 65vh;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      z-index: 50;
+      border-top: 1px solid var(--border);
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+    }
+    .ai-panel.open {
+      transform: translateY(0);
+    }
+    .ai-panel-handle {
+      display: flex;
+    }
+    .mobile-ai-fab {
+      display: flex;
+    }
     header { gap: 8px; padding: 8px 12px; }
     .logo { font-size: 11px; }
     .meeting-title-input { width: 120px; font-size: 12px; }
     .btn { padding: 6px 12px; font-size: 12px; }
     .timer-badge { font-size: 11px; padding: 4px 8px; }
     .header-actions { gap: 4px; }
+  }
+
+  /* MOBILE AI FAB + HANDLE (hidden on desktop) */
+  .mobile-ai-fab {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-size: 22px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 49;
+    box-shadow: 0 4px 16px rgba(0,229,128,0.3);
+    transition: all 0.2s;
+  }
+  .mobile-ai-fab:hover { transform: scale(1.05); }
+  .mobile-ai-fab.hidden { display: none !important; }
+
+  .ai-panel-handle {
+    display: none;
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 8px auto 4px;
+    cursor: grab;
   }
 
   /* SPEAKER LABELS */
@@ -988,7 +1070,7 @@
 </head>
 <body>
 
-<div id="toastContainer" style="position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;"></div>
+<div id="toastContainer" aria-live="polite" role="status" style="position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;"></div>
 
 <!-- API KEY MODAL -->
 <div class="modal-overlay" id="apiModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -1074,7 +1156,7 @@
   <div class="header-actions">
     <button class="btn btn-secondary" onclick="exportTranscript()">↓ Exportar</button>
     <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-    <button class="btn-danger" onclick="clearAll()">↺ Limpar</button>
+    <button class="btn btn-danger" onclick="clearAll()">↺ Limpar</button>
     <button class="btn btn-record" id="recordBtn" onclick="toggleRecording()">
       ● Gravar
     </button>
@@ -1111,14 +1193,15 @@
 
   <!-- AI PANEL -->
   <div class="ai-panel">
+    <div class="ai-panel-handle"></div>
     <div class="ai-tabs" role="tablist">
-      <div class="ai-tab active" role="tab" tabindex="0" onclick="switchTab('chat')" onkeydown="if(event.key==='Enter')switchTab('chat')">💬 Chat</div>
-      <div class="ai-tab" role="tab" tabindex="0" onclick="switchTab('insights')" onkeydown="if(event.key==='Enter')switchTab('insights')">🔍 Insights</div>
+      <div class="ai-tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-chat" onclick="switchTab('chat')" onkeydown="if(event.key==='Enter')switchTab('chat')">💬 Chat</div>
+      <div class="ai-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-insights" onclick="switchTab('insights')" onkeydown="if(event.key==='Enter')switchTab('insights')">🔍 Insights</div>
     </div>
 
     <!-- CHAT TAB -->
-    <div class="tab-content active" id="tab-chat">
-      <div class="chat-messages" id="chatMessages">
+    <div class="tab-content active" id="tab-chat" role="tabpanel">
+      <div class="chat-messages" id="chatMessages" aria-live="polite">
         <div class="msg ai">
           <div class="msg-meta">CO-PILOT</div>
           <div class="msg-bubble">
@@ -1148,12 +1231,12 @@
           onkeydown="handleChatKey(event)"
           oninput="autoResize(this)"
         ></textarea>
-        <button class="btn-send" id="sendBtn" onclick="sendMessage()">↑</button>
+        <button class="btn-send" id="sendBtn" onclick="sendMessage()" aria-label="Enviar mensagem">↑</button>
       </div>
     </div>
 
     <!-- INSIGHTS TAB -->
-    <div class="tab-content" id="tab-insights">
+    <div class="tab-content" id="tab-insights" role="tabpanel">
       <div class="insights-body" id="insightsBody">
         <div class="insights-empty">
           <span style="font-size:36px;opacity:0.5">🔍</span>
@@ -1169,7 +1252,51 @@
   </div>
 </div>
 
+<!-- MOBILE AI FAB -->
+<button class="mobile-ai-fab" id="mobileAiFab" onclick="toggleMobileAI()" aria-label="Abrir assistente IA">💬</button>
+
 <script>
+// ============================================================
+// MOBILE AI PANEL TOGGLE
+// ============================================================
+function toggleMobileAI() {
+  const panel = document.querySelector('.ai-panel');
+  const fab = document.getElementById('mobileAiFab');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    fab.classList.add('hidden');
+  }
+}
+// Close on handle click or swipe down
+document.addEventListener('click', function(e) {
+  const panel = document.querySelector('.ai-panel');
+  const fab = document.getElementById('mobileAiFab');
+  if (e.target.classList.contains('ai-panel-handle')) {
+    panel.classList.remove('open');
+    fab.classList.remove('hidden');
+  }
+});
+// Close mobile AI panel on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const panel = document.querySelector('.ai-panel');
+    const fab = document.getElementById('mobileAiFab');
+    const modal = document.getElementById('apiModal');
+    if (panel.classList.contains('open')) {
+      panel.classList.remove('open');
+      fab.classList.remove('hidden');
+    }
+    // Close modals on Escape
+    if (modal && modal.style.display !== 'none') {
+      if (apiKey) modal.style.display = 'none';
+    }
+    const bhGuide = document.getElementById('blackholeGuide');
+    if (bhGuide && bhGuide.style.display !== 'none') {
+      bhGuide.style.display = 'none';
+    }
+  }
+});
+
 // ============================================================
 // STATE
 // ============================================================
@@ -2136,7 +2263,9 @@ function exportTranscript() {
 // ============================================================
 function switchTab(name) {
   document.querySelectorAll('.ai-tab').forEach(function(t, i) {
-    t.classList.toggle('active', (i === 0 && name === 'chat') || (i === 1 && name === 'insights'));
+    var isActive = (i === 0 && name === 'chat') || (i === 1 && name === 'insights');
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
   document.getElementById('tab-' + name).classList.add('active');
